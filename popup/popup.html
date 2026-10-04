@@ -1,15 +1,24 @@
 <!doctype html>
-<html>
+<html lang="tr">
   <head>
     <meta charset="utf-8" />
     <style>
-      body { width: 260px; margin: 0; padding: 12px; font: 13px/1.4 system-ui, sans-serif; }
+      :root { color-scheme: light dark; }
+      body { width: 260px; margin: 0; padding: 12px; font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
       h1 { font-size: 14px; margin: 0 0 6px; }
+      p { margin: 0 0 10px; }
+      button { width: 100%; padding: 6px; font: inherit; cursor: pointer; }
     </style>
   </head>
   <body>
-    <h1>Sahibinden Car Checker</h1>
-    <p>Open a car listing on sahibinden.com.</p>
+    <h1>Clio Checker</h1>
+    <p id="summary">Yükleniyor…</p>
+    <button id="open">Dashboard'u aç</button>
+    <script src="../src/lib/config.js"></script>
+    <script src="../src/lib/format.js"></script>
+    <script src="../src/lib/scoring.js"></script>
+    <script src="../src/lib/regression.js"></script>
+    <script src="../src/lib/storage.js"></script>
     <script src="popup.js"></script>
   </body>
 </html>

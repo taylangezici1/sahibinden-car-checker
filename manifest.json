@@ -3,16 +3,24 @@
   "name": "Sahibinden Car Checker",
   "version": "0.1.0",
   "description": "Personal used-car listing checker for sahibinden.com",
-  "permissions": ["storage"],
+  "permissions": ["storage", "unlimitedStorage"],
   "host_permissions": ["https://www.sahibinden.com/*"],
   "background": {
     "service_worker": "src/background.js"
   },
   "content_scripts": [
     {
-      "matches": ["https://www.sahibinden.com/ilan/*"],
-      "js": ["src/content.js"],
-      "css": ["src/content.css"],
+      "matches": ["https://www.sahibinden.com/ilan/vasita-otomobil-*"],
+      "js": [
+        "src/lib/config.js",
+        "src/lib/format.js",
+        "src/lib/scoring.js",
+        "src/lib/regression.js",
+        "src/lib/storage.js",
+        "src/content/parser.js",
+        "src/content/panel.js",
+        "src/content/content.js"
+      ],
       "run_at": "document_idle"
     }
   ],

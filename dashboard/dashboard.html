@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Clio Checker</title>
+    <link rel="stylesheet" href="dashboard.css" />
+  </head>
+  <body>
+    <header class="top">
+      <h1>Clio Checker</h1>
+      <div class="actions">
+        <button id="export-csv">CSV dışa aktar</button>
+        <button id="export-json">JSON yedek al</button>
+        <label class="btn">JSON içe aktar<input type="file" id="import-json" accept=".json,application/json" hidden /></label>
+      </div>
+    </header>
+
+    <section class="stats" id="stats"></section>
+
+    <section class="panel">
+      <h2>Fiyat ve skor</h2>
+      <p class="sub" id="fit-text"></p>
+      <div class="legend" id="legend" hidden>
+        <span><i class="key-dot" style="background: var(--deal)"></i>Skoruna göre ucuz</span>
+        <span><i class="key-dot" style="background: var(--pricey)"></i>Skoruna göre pahalı</span>
+        <span><i class="key-line"></i>Beklenen fiyat</span>
+      </div>
+      <div class="chart" id="chart"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Uygun ilanlar</h2>
+      <p class="sub">Beklenen fiyata göre en ucuzdan pahalıya. Skorun üstüne gelince puan dökümü görünür.</p>
+      <div class="table-wrap"><table id="eligible"></table></div>
+    </section>
+
+    <section class="panel">
+      <h2>Elenen ilanlar</h2>
+      <div class="table-wrap"><table id="excluded"></table></div>
+    </section>
+
+    <div class="tooltip" id="tooltip" hidden></div>
+
+    <script src="../src/lib/config.js"></script>
+    <script src="../src/lib/format.js"></script>
+    <script src="../src/lib/scoring.js"></script>
+    <script src="../src/lib/regression.js"></script>
+    <script src="../src/lib/storage.js"></script>
+    <script src="scatter.js"></script>
+    <script src="dashboard.js"></script>
+  </body>
+</html>
