@@ -174,3 +174,15 @@ td small.drop { color: var(--good); font-weight: 600; }
 td small.rise { color: var(--bad); font-weight: 600; }
 .filter { display: inline-flex; align-items: center; gap: 8px; margin: 2px 0 10px; font-weight: 600; cursor: pointer; }
 .filter input { width: 20px; height: 20px; accent-color: var(--brand); }
+
+/* The model's own settings: lowest year and the trim table. */
+.model-form .year { justify-content: flex-start; gap: 4px 14px; border-bottom: 0; margin-bottom: 4px; }
+.variants { width: auto; min-width: min(100%, 560px); }
+.variants td, .variants th { padding: 6px 10px; }
+.variants input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--brand); cursor: pointer; }
+.variants input[type="number"] {
+  width: 80px; padding: 6px 8px; font: inherit; font-size: 17px; font-weight: 700; text-align: center;
+  color: var(--ink); background: var(--surface); border: 2px solid var(--axis); border-radius: 8px;
+}
+.variants input[type="number"]:focus, .model-form .year input:focus { outline: none; border-color: var(--brand); }
+.variants small { display: inline; margin-left: 6px; color: var(--ink-2); }

@@ -241,6 +241,14 @@
     renderEligible();
     renderExcluded();
     renderGone();
+    renderModelSettings();
+  }
+
+  function renderModelSettings() {
+    $('model-panel').hidden = !group.key;
+    if (!group.key) return;
+    $('model-name').textContent = group.key;
+    SCC.modelForm.show($('model-form'), $('model-status'), group);
   }
 
   // The tables are rebuilt from scratch, so the browser can't keep the reader's
@@ -274,9 +282,12 @@
     keepingPlace(renderGroup);
   }
 
+  // Opens the model's settings and the score settings below them.
   function openSettings() {
+    $('model-box').open = true;
     $('settings-box').open = true;
-    $('settings-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const first = $('model-panel').hidden ? $('settings-panel') : $('model-panel');
+    first.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   function download(name, content, type) {
@@ -376,6 +387,7 @@
 
   $('open-settings').onclick = openSettings;
   $('settings-reset').onclick = () => SCC.settingsForm.reset($('settings-form'), $('settings-status'));
+  $('model-reset').onclick = () => SCC.modelForm.reset($('model-form'), $('model-status'), group);
 
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === 'local' && (changes.listings || changes.settings)) render();

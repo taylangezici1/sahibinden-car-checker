@@ -84,4 +84,11 @@ SCC.storage = {
   async saveSettings(settings) {
     await chrome.storage.local.set({ settings });
   },
+
+  // Changes one part of the saved settings and keeps the rest: the score form owns
+  // `scoring`, each model's form owns `models[key]`. `edit` gets a copy and returns it.
+  async editSettings(edit) {
+    const { settings = {} } = await chrome.storage.local.get('settings');
+    await SCC.storage.saveSettings(edit(JSON.parse(JSON.stringify(settings))));
+  },
 };

@@ -52,11 +52,27 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
     return null;
   }
 
-  function checkFilters(listing, f, trim) {
+  // Whether a listing's trim is in, and the points it brings. sahibinden's "Model"
+  // (e.g. "1.0 TCe Evolution") is the unit: a choice made for that exact model on the
+  // dashboard (config.variants, see dashboard/settings.js) wins; otherwise the trim
+  // names in config.js decide (filters.allowedTrims, scoring.trim, matched inside it).
+  SCC.variantChoice = function (listing, config) {
+    const trim = detectTrim(listing, config.filters.allowedTrims || Object.keys(config.scoring.trim));
+    const own = config.variants?.[listing.model];
+    return {
+      trim,
+      include: own?.include ?? (!config.filters.allowedTrims || Boolean(trim)),
+      points: own?.points ?? (trim ? config.scoring.trim[trim] || 0 : 0),
+      // Name the points after the whole model when they were set for it.
+      label: own?.points != null || !trim ? listing.model : trim,
+    };
+  };
+
+  function checkFilters(listing, f, variant) {
     const reasons = [];
     if (listing.year == null) reasons.push('Yıl okunamadı');
     else if (f.minYear && listing.year < f.minYear) reasons.push(`${f.minYear} öncesi (${listing.year})`);
-    if (f.allowedTrims && !trim) reasons.push(`Paket uygun değil (${listing.model || '?'})`);
+    if (!variant.include) reasons.push(`Paket uygun değil (${listing.model || '?'})`);
     if (listing.parts && listing.parts.changed.length > f.maxChangedParts) {
       reasons.push(`Değişen parça var (${listing.parts.changed.join(', ')})`);
     }
@@ -81,7 +97,7 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
     return s.paint[region] ?? s.paint.other;
   }
 
-  function breakdown(listing, s, trim) {
+  function breakdown(listing, s, variant) {
     const items = [];
     const add = (label, points) => {
       if (points) items.push({ label, points });
@@ -108,7 +124,7 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
       const raw = (listing.tramer / s.tramer.every) * s.tramer.points;
       add(`Tramer (${SCC.format.tl(listing.tramer)})`, Math.round(Math.max(raw, s.tramer.max) * 10) / 10);
     }
-    if (trim) add(`Paket (${trim})`, s.trim[trim] || 0);
+    add(`Paket (${variant.label})`, variant.points);
     if (listing.gear) add(`Vites (${listing.gear})`, s.gear[listing.gear] || 0);
     if (listing.color) add(`Renk (${listing.color})`, s.color[listing.color] || 0);
     if (listing.warranty === false) add('Garanti yok', s.noWarranty);
@@ -118,10 +134,10 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
 
   // `config` is one group's config, from SCC.configFor.
   SCC.evaluate = function (listing, config) {
-    const trim = detectTrim(listing, config.filters.allowedTrims || Object.keys(config.scoring.trim));
-    const reasons = checkFilters(listing, config.filters, trim);
-    const items = breakdown(listing, config.scoring, trim);
+    const variant = SCC.variantChoice(listing, config);
+    const reasons = checkFilters(listing, config.filters, variant);
+    const items = breakdown(listing, config.scoring, variant);
     const score = config.scoring.baseScore + items.reduce((sum, i) => sum + i.points, 0);
-    return { trim, eligible: reasons.length === 0, reasons, score: Math.round(score * 10) / 10, breakdown: items };
+    return { trim: variant.trim, eligible: reasons.length === 0, reasons, score: Math.round(score * 10) / 10, breakdown: items };
   };
 })();

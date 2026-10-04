@@ -21,7 +21,7 @@
           <span>Model</span>
           <select id="group"></select>
         </label>
-        <button id="open-settings">⚙ Puan ayarları</button>
+        <button id="open-settings">⚙ Ayarlar</button>
       </div>
     </header>
 
@@ -71,6 +71,18 @@
         </p>
         <div class="table-wrap"><table id="gone"></table></div>
         <div class="pager" id="gone-pager" hidden></div>
+      </details>
+    </section>
+
+    <section class="panel" id="model-panel" data-anchor="model">
+      <details id="model-box">
+        <summary><h2><span id="model-name">Model</span> ayarları</h2></summary>
+        <p class="sub">Bu ayarlar sadece bu modelin ilanları için geçerlidir. Değişiklikler kendiliğinden kaydedilir.</p>
+        <div id="model-form" class="model-form"></div>
+        <div class="actions">
+          <button id="model-reset">Bu modeli önerilen değerlere döndür</button>
+          <span id="model-status" class="status" role="status" aria-live="polite"></span>
+        </div>
       </details>
     </section>
 

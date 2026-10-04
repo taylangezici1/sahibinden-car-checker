@@ -46,9 +46,17 @@ puanına göre beklenen fiyattır; çizginin altındaki ilanlar ucuzdur.
 
 <img src="docs/screenshots/dashboard.png" alt="Karşılaştırma sayfası: fiyat ve puan grafiği, en iyi fırsatlar tablosu">
 
+### Model ayarları
+
+Her model için en düşük model yılı ve hangi paketlerin dahil olacağı, hangisinin kaç ek puan alacağı
+karşılaştırma sayfasından ayarlanabilir. Liste, o modelden kaydedilen ilanlardaki paketlerden oluşur.
+
+<img src="docs/screenshots/model-ayarlari.png" alt="Renault Clio için model yılı ve paket ayarları">
+
 ### Puan ayarları
 
-Hangi kusurun kaç puan düşüreceği karşılaştırma sayfasından değiştirilebilir.
+Hangi kusurun kaç puan düşüreceği karşılaştırma sayfasından değiştirilebilir; bunlar bütün modeller
+için geçerlidir.
 
 <img src="docs/screenshots/ayarlar.png" alt="Puan ayarları formu">
 
@@ -65,7 +73,11 @@ için o modelden en az 5 uygun ilan gerekir.
 
 **Modeller ayrı tutulur.** İlanlar sahibinden'deki "Marka Seri" bilgisine göre gruplanır
 ("Renault Clio", "Hyundai i20" gibi) ve farklı modeller birbiriyle kıyaslanmaz. Modele özel ayarlar
-(izin verilen paketler, paket puanları, en düşük model yılı) `src/lib/config.js` içinde tanımlanır.
+(en düşük model yılı, hangi paketlerin dahil olduğu, paket puanları) karşılaştırma sayfasındaki
+**Model ayarları** bölümünden yapılır (bkz. [Model ayarları](#model-ayarları)). Paket, sahibinden'deki
+"Model" adıyla seçilir ("1.0 TCe Evolution" gibi). Ayar yapılmamış paketler için `src/lib/config.js`
+içindeki model profilleri geçerlidir; Clio için orada önerilen paketler ve 2024 sınırı tanımlı,
+profili olmayan modellerde bütün paketler dahildir ve yıl sınırı yoktur.
 
 **Tramer.** İlanda tutar yazıyorsa o kullanılır. Yazmıyorsa "tramer kaydı yok", "hasar kayıtsız",
 "hatasız" ya da "boyasız" gibi ifadelerden 0 kabul edilir. Panelden elle de girilebilir.
@@ -131,7 +143,8 @@ Dikkat edilecekler:
   yönlenirse) o sekme kapanmaz, öne gelir; doğrulamayı orada tamamlayabilirsiniz.
 - **Karşılaştırma sayfası:** Araç çubuğundaki simgeye tıklayıp **Kaydedilen ilanları karşılaştır**'a
   ya da paneldeki mavi düğmeye basın.
-- **Puan ayarları:** Karşılaştırma sayfasında **⚙ Puan ayarları**. Değişiklikler kendiliğinden kaydedilir.
+- **Ayarlar:** Karşılaştırma sayfasında **⚙ Ayarlar**. Önce seçili modelin ayarları (yıl, paketler),
+  altında bütün modeller için puan ayarları açılır. Değişiklikler kendiliğinden kaydedilir.
 - **Yedekleme:** Karşılaştırma sayfasının altındaki **Yedekleme** bölümünden bütün ilanlar dosyaya
   alınabilir ve başka bir bilgisayara yüklenebilir. Puan ayarları yedeğe dahil değildir.
 
@@ -154,10 +167,14 @@ Dikkat edilecekler:
 
 ### Notlar
 
-- **Ayarlar:** `config.js` önerilen değerleri tutar. Puan ayarları formu yalnızca bunlardan farklı
-  olan değerleri kaydeder (`chrome.storage.local` → `settings`) ve her sayfa bunları `config.js`'in
-  üzerine bindirir (`SCC.storage.loadSettings()`). Böylece `config.js`'te sonradan yapılan
-  değişiklikler, kullanıcının dokunmadığı ayarlara yine ulaşır.
+- **Ayarlar:** `config.js` önerilen değerleri tutar. Formlar yalnızca bunlardan farklı olan değerleri
+  kaydeder (`chrome.storage.local` → `settings`: puan formu `scoring`, model formu `models["Marka Seri"]`
+  altına; ikisi de `SCC.storage.editSettings()` ile sadece kendi kısmını değiştirir) ve her sayfa
+  bunları `config.js`'in üzerine bindirir (`SCC.storage.loadSettings()`). Böylece `config.js`'te
+  sonradan yapılan değişiklikler, kullanıcının dokunmadığı ayarlara yine ulaşır.
+- **Paketler:** Model formundaki seçimler sahibinden'deki tam "Model" adına göre saklanır
+  (`models[...].variants["1.0 TCe Evolution"] = { include, points }`). `SCC.variantChoice()` önce
+  buna, yoksa `config.js`'teki paket adlarına (`filters.allowedTrims`, `scoring.trim`) bakar.
 - **Ham veri:** İlanlar okunduğu haliyle saklanır, puanlar her açılışta yeniden hesaplanır. `config.js`
   ya da ayarlar değişince kayıtlı bütün ilanlar yeniden puanlanır.
 - **Elle girilen değerler** (şimdilik yalnızca tramer) `listing.overrides` içinde durur ve ilan
