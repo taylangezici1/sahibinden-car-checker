@@ -3,6 +3,34 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
 (() => {
   const norm = (s) => (s || '').toLocaleLowerCase('tr-TR');
 
+  // Cars are only compared within one "Marka Seri" group: a Clio's price says nothing about an i20's.
+  SCC.groupKey = (listing) => [listing.brand, listing.series].filter(Boolean).join(' ') || 'Bilinmeyen';
+
+  const isPlainObject = (v) => v != null && typeof v === 'object' && !Array.isArray(v);
+  function merge(base, over) {
+    if (!isPlainObject(over)) return base;
+    const out = { ...base };
+    for (const [k, v] of Object.entries(over)) {
+      out[k] = isPlainObject(v) && isPlainObject(base[k]) ? merge(base[k], v) : v;
+    }
+    return out;
+  }
+  SCC.merge = merge;
+
+  // Values the user typed in on the panel (listing.overrides, e.g. tramer) win over
+  // what was read from the page. `parsed` keeps the page's values for display.
+  SCC.withOverrides = (listing) =>
+    listing.overrides && Object.keys(listing.overrides).length
+      ? { ...listing, ...listing.overrides, parsed: listing }
+      : listing;
+
+  // The shared filters and weights with the group's profile from config.models laid over them.
+  SCC.configFor = function (key, config = SCC.config) {
+    const { models = {}, ...defaults } = config;
+    const profile = Object.entries(models).find(([k]) => norm(k) === norm(key))?.[1];
+    return merge(defaults, profile);
+  };
+
   // Longest name first so "Esprit Alpine" wins over a shorter overlapping name.
   function detectTrim(listing, trims) {
     const sorted = [...trims].sort((a, b) => b.length - a.length);
@@ -16,17 +44,31 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
 
   function checkFilters(listing, f, trim) {
     const reasons = [];
-    if (!norm(listing.brand).includes(norm(f.brand))) reasons.push(`Marka ${f.brand} değil`);
-    if (!norm(listing.series).includes(norm(f.series))) reasons.push(`Seri ${f.series} değil`);
     if (listing.year == null) reasons.push('Yıl okunamadı');
-    else if (listing.year < f.minYear) reasons.push(`${f.minYear} öncesi (${listing.year})`);
-    if (!trim) reasons.push(`Paket uygun değil (${listing.model || '?'})`);
+    else if (f.minYear && listing.year < f.minYear) reasons.push(`${f.minYear} öncesi (${listing.year})`);
+    if (f.allowedTrims && !trim) reasons.push(`Paket uygun değil (${listing.model || '?'})`);
     if (listing.parts && listing.parts.changed.length > f.maxChangedParts) {
       reasons.push(`Değişen parça var (${listing.parts.changed.join(', ')})`);
     }
     if (!f.allowHeavyDamage && listing.heavyDamage === true) reasons.push('Ağır hasar kayıtlı');
     if (!listing.price) reasons.push('Fiyat okunamadı');
     return reasons;
+  }
+
+  // First match wins, so "Bagaj Kapağı" is a rear hood and not a door.
+  const PAINT_REGIONS = [
+    ['roof', /tavan/],
+    ['rearHood', /bagaj|arka\s*kaput/],
+    ['frontHood', /kaput/],
+    ['door', /kap[ıi]/],
+    ['rearMudguard', /arka.*[çc]amurluk/],
+    ['frontMudguard', /[çc]amurluk/],
+    ['bumper', /tampon/],
+  ];
+
+  function paintPoints(name, s) {
+    const region = PAINT_REGIONS.find(([, re]) => re.test(norm(name)))?.[0];
+    return s.paint[region] ?? s.paint.other;
   }
 
   function breakdown(listing, s, trim) {
@@ -43,10 +85,10 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
       add(`Yaş (${listing.year})`, age * s.perYearOld);
     }
     if (listing.parts) {
-      const lp = listing.parts.localPainted.length;
-      const p = listing.parts.painted.length;
-      add(`Lokal boya ×${lp}`, lp * s.localPaintPerPart);
-      add(`Boya ×${p}`, p * s.paintPerPart);
+      for (const name of listing.parts.painted) add(`Boya: ${name}`, paintPoints(name, s));
+      for (const name of listing.parts.localPainted) {
+        add(`Lokal boya: ${name}`, Math.round(paintPoints(name, s) * s.localPaintFactor * 10) / 10);
+      }
     } else {
       add('Boya/değişen belirtilmemiş', s.unknownDamageInfo);
     }
@@ -58,13 +100,15 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
     }
     if (trim) add(`Paket (${trim})`, s.trim[trim] || 0);
     if (listing.gear) add(`Vites (${listing.gear})`, s.gear[listing.gear] || 0);
+    if (listing.color) add(`Renk (${listing.color})`, s.color[listing.color] || 0);
     if (listing.warranty === false) add('Garanti yok', s.noWarranty);
 
     return items;
   }
 
-  SCC.evaluate = function (listing, config = SCC.config) {
-    const trim = detectTrim(listing, config.filters.allowedTrims);
+  // `config` is one group's config, from SCC.configFor.
+  SCC.evaluate = function (listing, config) {
+    const trim = detectTrim(listing, config.filters.allowedTrims || Object.keys(config.scoring.trim));
     const reasons = checkFilters(listing, config.filters, trim);
     const items = breakdown(listing, config.scoring, trim);
     const score = config.scoring.baseScore + items.reduce((sum, i) => sum + i.points, 0);

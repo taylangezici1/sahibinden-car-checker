@@ -3,17 +3,33 @@
   <head>
     <meta charset="utf-8" />
     <style>
-      :root { color-scheme: light dark; }
-      body { width: 260px; margin: 0; padding: 12px; font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
-      h1 { font-size: 14px; margin: 0 0 6px; }
-      p { margin: 0 0 10px; }
-      button { width: 100%; padding: 6px; font: inherit; cursor: pointer; }
+      :root {
+        color-scheme: light;
+        --surface: #ffffff; --ink: #141414; --ink-2: #45443f; --line: #e3e2dc; --brand: #1d5fb8;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root { color-scheme: dark; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7; --line: #2c2c2a; --brand: #3987e5; }
+      }
+      body { width: 320px; margin: 0; padding: 16px; background: var(--surface); color: var(--ink);
+             font: 16px/1.5 "Segoe UI", system-ui, -apple-system, sans-serif; }
+      header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+      header img { width: 44px; height: 44px; }
+      h1 { font-size: 19px; margin: 0; line-height: 1.2; }
+      p { margin: 0 0 14px; }
+      .hint { color: var(--ink-2); font-size: 15px; }
+      button { display: block; width: 100%; min-height: 48px; padding: 10px 16px; border: 0; border-radius: 8px;
+               background: var(--brand); color: #fff; font: inherit; font-size: 17px; font-weight: 600; cursor: pointer; }
+      button:hover { filter: brightness(1.1); }
     </style>
   </head>
   <body>
-    <h1>Clio Checker</h1>
+    <header>
+      <img src="../icons/logo.svg" alt="" />
+      <h1 id="name"></h1>
+    </header>
     <p id="summary">Yükleniyor…</p>
-    <button id="open">Dashboard'u aç</button>
+    <p class="hint">sahibinden.com'da bir araba ilanı açtığınızda sağ alt köşede puanı ve fiyat değerlendirmesi görünür.</p>
+    <button id="open">Kaydedilen ilanları karşılaştır</button>
     <script src="../src/lib/config.js"></script>
     <script src="../src/lib/format.js"></script>
     <script src="../src/lib/scoring.js"></script>

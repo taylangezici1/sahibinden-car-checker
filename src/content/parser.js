@@ -1,5 +1,10 @@
 var SCC = globalThis.SCC || (globalThis.SCC = {});
 
+// sahibinden categories whose listings are read and scored, as they appear in listing
+// URLs (/ilan/vasita-<category>-...). Keep the first content_scripts "matches" in
+// manifest.json in step with this list.
+SCC.CAR_CATEGORIES = ['otomobil', 'arazi-suv-pickup'];
+
 // Selectors are written from memory of sahibinden's markup and have fallbacks.
 // If a field comes back empty, save the listing page into fixtures/ and fix it here.
 (() => {
@@ -14,9 +19,15 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
     return null;
   };
 
-  // The "İlan No / Marka / Seri / Model / Yıl / KM ..." table: <li><strong>label</strong><span>value</span></li>
+  // The "İlan No / Marka / Seri / Model / Yıl / KM ..." table. Current markup (fixtures/) is
+  // <dl class="classifiedInfoList"><div class="classifiedInfoItem"><dt>label</dt><dd>value</dd></div>,
+  // older pages used <li><strong>label</strong><span>value</span></li>.
   function readInfoList(doc) {
     const info = {};
+    for (const dt of doc.querySelectorAll('.classifiedInfoList dt')) {
+      const dd = dt.nextElementSibling;
+      if (dd?.tagName === 'DD') info[clean(dt.textContent)] = clean(dd.textContent);
+    }
     const items = doc.querySelectorAll('.classifiedInfoList li, .classifiedInfo li');
     for (const li of items) {
       const label = li.querySelector('strong');
@@ -25,6 +36,7 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
     }
     return info;
   }
+  SCC.readInfoList = readInfoList;
 
   function pick(info, ...labels) {
     const wanted = labels.map(key);
@@ -39,7 +51,7 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
   function readPrice(doc) {
     const meta = doc.querySelector('[itemprop="price"]')?.getAttribute('content');
     if (meta) return parseNumber(meta);
-    const el = first(doc, ['.classifiedInfo > h3', '.classified-price-wrapper', '.classifiedInfo h3']);
+    const el = first(doc, ['.classifiedPriceValue', '.classifiedInfo > h3', '.classified-price-wrapper', '.classifiedInfo h3']);
     const m = clean(el?.textContent).match(/(\d{1,3}(?:\.\d{3})+|\d+)\s*(?:TL|₺)/);
     return m ? parseNumber(m[1]) : null;
   }
@@ -57,9 +69,50 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
     return DAMAGE_CATEGORIES.find(([, re]) => re.test(t))?.[0] || null;
   }
 
+  // The car diagram: <div class="car-parts"><div class="front-hood original-new">. Part keys
+  // are fixed, so this is preferred over the text list. State classes do not always match
+  // the legend above it: the legend says "local-painted-new", parts say "localpainted-new".
+  const DIAGRAM_PARTS = {
+    'front-bumper': 'Ön Tampon',
+    'front-hood': 'Motor Kaputu',
+    roof: 'Tavan',
+    'front-right-mudguard': 'Sağ Ön Çamurluk',
+    'front-right-door': 'Sağ Ön Kapı',
+    'rear-right-door': 'Sağ Arka Kapı',
+    'rear-right-mudguard': 'Sağ Arka Çamurluk',
+    'front-left-mudguard': 'Sol Ön Çamurluk',
+    'front-left-door': 'Sol Ön Kapı',
+    'rear-left-door': 'Sol Arka Kapı',
+    'rear-left-mudguard': 'Sol Arka Çamurluk',
+    'rear-hood': 'Bagaj Kapağı',
+    'rear-bumper': 'Arka Tampon',
+  };
+  const DIAGRAM_STATES = [
+    ['localPainted', /^local-?painted/],
+    ['painted', /^painted/],
+    ['changed', /^changed/],
+    ['original', /^original/],
+  ];
+
+  function readDamageDiagram(doc) {
+    const parts = { original: [], localPainted: [], painted: [], changed: [] };
+    let total = 0;
+    for (const el of doc.querySelectorAll('.car-parts > div')) {
+      const classes = [...el.classList];
+      const name = DIAGRAM_PARTS[classes.find((c) => Object.hasOwn(DIAGRAM_PARTS, c))];
+      if (!name) continue;
+      const state = DIAGRAM_STATES.find(([, re]) => classes.some((c) => re.test(c)))?.[0];
+      // An unrecognised state would silently drop a damaged part; let the text list decide instead.
+      if (!state) return null;
+      parts[state].push(name);
+      total++;
+    }
+    return total > 0 ? parts : null;
+  }
+
   // "Boya, Değişen ve Hasar Bilgisi": one <ul> per category, the first <li> (or a
   // preceding heading) names the category, the rest are part names.
-  function readDamage(doc) {
+  function readDamageList(doc) {
     const root = first(doc, [
       '.car-damage-info-list',
       '.car-damage-info',
@@ -84,6 +137,8 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
     const total = Object.values(parts).reduce((n, list) => n + list.length, 0);
     return found && total > 0 ? parts : null;
   }
+
+  const readDamage = (doc) => readDamageDiagram(doc) || readDamageList(doc);
 
   // Tramer is rarely a structured field, so also scan the title and description.
   function readTramer(info, text) {
@@ -112,8 +167,13 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
       if (n != null && n >= 500 && !looksLikeYear) return { amount: n, text: snippet(m.index) };
     }
 
-    const noRecord = t.match(/hasar\s*kayd[ıi]\s*(?:yok|bulunmamakta)/);
+    const noRecord = t.match(/hasar\s*kayd[ıi]\s*(?:yok|bulunmamakta)|hasar\s*kay[ıi]ts[ıi]z/);
     if (noRecord) return { amount: 0, text: snippet(noRecord.index) };
+
+    // Last resort: an ad that calls the car "hatasız" or "boyasız" and never gives
+    // a tramer amount is taken to have none.
+    const spotless = t.match(/hatas[ıi]z|boyas[ıi]z/);
+    if (spotless) return { amount: 0, text: snippet(spotless.index) };
     return { amount: null, text: null };
   }
 
@@ -139,13 +199,13 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
       model: pick(info, 'Model'),
       year: parseNumber(pick(info, 'Yıl')),
       km: parseNumber(pick(info, 'KM')),
-      fuel: pick(info, 'Yakıt Tipi', 'Yakıt'),
+      fuel: pick(info, 'Yakıt / Motor Tipi', 'Yakıt Tipi', 'Yakıt'),
       gear: pick(info, 'Vites'),
       color: pick(info, 'Renk'),
-      warranty: yesNo(pick(info, 'Garanti')),
+      warranty: yesNo(pick(info, 'Servis Garantisi', 'Garanti')),
       heavyDamage: yesNo(pick(info, 'Ağır Hasar Kayıtlı', 'Ağır Hasarlı')),
       seller: pick(info, 'Kimden'),
-      location: clean(first(doc, ['.classifiedInfo > h2'])?.textContent),
+      location: clean(first(doc, ['.classifiedLocation', '.classifiedInfo > h2'])?.textContent),
       parts: readDamage(doc),
       tramer: tramer.amount,
       tramerText: tramer.text,

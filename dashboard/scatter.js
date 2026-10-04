@@ -25,18 +25,22 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
     return ticks;
   }
 
-  const compactTl = (n) => n.toLocaleString('tr-TR', { notation: 'compact', maximumFractionDigits: 2 });
+  // Axis labels in words an older reader knows: "1,4 milyon", "850 bin".
+  const compactTl = (n) =>
+    n >= 1e6 ? `${(n / 1e6).toLocaleString('tr-TR', { maximumFractionDigits: 2 })} milyon`
+    : n >= 1e3 ? `${(n / 1e3).toLocaleString('tr-TR', { maximumFractionDigits: 0 })} bin`
+    : n.toLocaleString('tr-TR');
 
   SCC.drawScatter = function (container, rows, model, { onHover, onOpen }) {
     container.innerHTML = '';
     if (!rows.length) {
-      container.innerHTML = '<p class="empty">Henüz kriterlere uygun ilan yok. sahibinden.com\'da Clio ilanlarını gezdikçe burada görünecek.</p>';
+      container.innerHTML = '<p class="empty">Bu model için henüz aradığınız özelliklere uyan ilan yok. sahibinden.com\'da ilan açtıkça burada görünecek.</p>';
       return;
     }
 
     const width = Math.max(320, container.clientWidth);
     const height = Math.round(Math.min(420, Math.max(260, width * 0.45)));
-    const m = { top: 12, right: 16, bottom: 40, left: 64 };
+    const m = { top: 14, right: 18, bottom: 48, left: 100 };
     const iw = width - m.left - m.right;
     const ih = height - m.top - m.bottom;
 
@@ -47,19 +51,19 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
     const sx = (v) => m.left + ((v - x0) / (x1 - x0)) * iw;
     const sy = (v) => m.top + ih - ((v - y0) / (y1 - y0)) * ih;
 
-    const svg = el('svg', { viewBox: `0 0 ${width} ${height}`, role: 'img', 'aria-label': 'Fiyat ve skor dağılımı' });
+    const svg = el('svg', { viewBox: `0 0 ${width} ${height}`, role: 'img', 'aria-label': 'Fiyat ve kalite puanı dağılımı' });
 
     for (const t of yTicks) {
       svg.append(el('line', { class: 'grid', x1: m.left, x2: m.left + iw, y1: sy(t), y2: sy(t) }));
       svg.append(el('text', { class: 'tick', x: m.left - 8, y: sy(t) + 4, 'text-anchor': 'end' }, compactTl(t)));
     }
     for (const t of xTicks) {
-      svg.append(el('text', { class: 'tick', x: sx(t), y: m.top + ih + 16, 'text-anchor': 'middle' }, t.toLocaleString('tr-TR')));
+      svg.append(el('text', { class: 'tick', x: sx(t), y: m.top + ih + 20, 'text-anchor': 'middle' }, t.toLocaleString('tr-TR')));
     }
     svg.append(el('line', { class: 'axis', x1: m.left, x2: m.left + iw, y1: m.top + ih, y2: m.top + ih }));
-    svg.append(el('text', { class: 'axis-title', x: m.left + iw / 2, y: height - 4, 'text-anchor': 'middle' }, 'Skor'));
+    svg.append(el('text', { class: 'axis-title', x: m.left + iw / 2, y: height - 6, 'text-anchor': 'middle' }, 'Kalite puanı'));
     svg.append(
-      el('text', { class: 'axis-title', transform: `translate(14 ${m.top + ih / 2}) rotate(-90)`, 'text-anchor': 'middle' }, 'Fiyat (TL)'),
+      el('text', { class: 'axis-title', transform: `translate(16 ${m.top + ih / 2}) rotate(-90)`, 'text-anchor': 'middle' }, 'Fiyat (TL)'),
     );
 
     if (model) {
@@ -81,9 +85,9 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
     for (const r of rows) {
       const cx = sx(r.score);
       const cy = sy(r.listing.price);
-      const cls = r.diff == null ? 'deal' : r.diff < 0 ? 'deal' : 'pricey';
-      const hit = el('circle', { class: 'hit', cx, cy, r: 12 });
-      const dot = el('circle', { class: `dot ${cls}`, cx, cy, r: 5 });
+      const cls = r.verdict || 'plain'; // no verdict until a line is fitted
+      const hit = el('circle', { class: 'hit', cx, cy, r: 14 });
+      const dot = el('circle', { class: `dot ${cls}`, cx, cy, r: 6 });
       hit.addEventListener('mousemove', (e) => onHover(r, e));
       hit.addEventListener('mouseleave', () => onHover(null));
       hit.addEventListener('click', () => onOpen(r));

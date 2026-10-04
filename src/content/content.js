@@ -1,23 +1,41 @@
 (async () => {
-  const listing = SCC.parseListing(document, location.href);
-  if (!listing) return;
+  try {
+    const listing = SCC.parseListing(document, location.href);
+    if (!listing) {
+      const labels = Object.keys(SCC.readInfoList(document));
+      console.warn('[SCC] İlan okunamadı. Bilgi tablosundan okunan başlıklar:', labels);
+      SCC.renderNotice('Bu ilan okunamadı', [
+        labels.length
+          ? `Marka/KM bulunamadı. Okunan başlıklar: ${labels.join(', ')}`
+          : 'İlan bilgi tablosu (Marka, Seri, KM...) sayfada bulunamadı',
+      ]);
+      return;
+    }
 
-  // Only Clios are worth keeping; filters like year/trim are applied later so
-  // loosening them in config brings already-seen cars back in.
-  const isTarget =
-    (listing.brand || '').toLocaleLowerCase('tr-TR').includes(SCC.config.filters.brand.toLocaleLowerCase('tr-TR')) &&
-    (listing.series || '').toLocaleLowerCase('tr-TR').includes(SCC.config.filters.series.toLocaleLowerCase('tr-TR'));
-  if (!isTarget) return;
+    // Every car is kept; filters like year/trim are applied when scoring, so
+    // loosening them in config brings already-seen cars back in.
+    const key = SCC.groupKey(listing);
+    // Skips redraws when nothing this panel shows has changed, e.g. a listing of
+    // another model saved in another tab, or only a lastSeenAt bump.
+    let shown = '';
+    const render = async () => {
+      const settings = await SCC.storage.loadSettings();
+      const sameModel = (await SCC.storage.list()).filter((l) => SCC.groupKey(l) === key);
+      const snapshot = JSON.stringify([settings, sameModel], (k, v) => (k === 'lastSeenAt' ? undefined : v));
+      if (snapshot === shown) return;
+      shown = snapshot;
+      const group = SCC.analyzeGroup(key, sameModel);
+      const row = group.rows.find((r) => r.listing.id === listing.id);
+      if (row) SCC.renderPanel(row, group);
+    };
 
-  const render = async () => {
-    const analysis = SCC.analyze(await SCC.storage.list());
-    const row = analysis.rows.find((r) => r.listing.id === listing.id);
-    if (row) SCC.renderPanel(row, analysis);
-  };
-
-  await SCC.storage.upsert(listing);
-  await render();
-  chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === 'local' && changes.listings) render();
-  });
+    await SCC.storage.upsert(listing);
+    await render();
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === 'local' && (changes.listings || changes.settings)) render();
+    });
+  } catch (err) {
+    console.error('[SCC]', err);
+    SCC.renderNotice('Bir hata oluştu', [String(err?.stack || err)]);
+  }
 })();

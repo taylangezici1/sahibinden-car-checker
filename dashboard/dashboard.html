@@ -3,41 +3,87 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Clio Checker</title>
+    <title>Oto Fiyat Rehberi</title>
+    <link rel="icon" href="../icons/icon-32.png" />
     <link rel="stylesheet" href="dashboard.css" />
   </head>
   <body>
     <header class="top">
-      <h1>Clio Checker</h1>
-      <div class="actions">
-        <button id="export-csv">CSV dışa aktar</button>
-        <button id="export-json">JSON yedek al</button>
-        <label class="btn">JSON içe aktar<input type="file" id="import-json" accept=".json,application/json" hidden /></label>
+      <div class="brand">
+        <img src="../icons/logo.svg" alt="" />
+        <div>
+          <h1 id="name">Oto Fiyat Rehberi</h1>
+          <p class="sub">Kaydettiğiniz ilanları aynı modeldeki diğer ilanlarla karşılaştırır.</p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <label class="picker">
+          <span>Model</span>
+          <select id="group"></select>
+        </label>
+        <button id="open-settings">⚙ Puan ayarları</button>
       </div>
     </header>
 
-    <section class="stats" id="stats"></section>
+    <section class="stats" id="stats" data-anchor="stats"></section>
 
-    <section class="panel">
-      <h2>Fiyat ve skor</h2>
+    <section class="panel" data-anchor="chart">
+      <h2>Fiyat ve kalite puanı</h2>
+      <p class="sub">
+        Her nokta bir ilan. Çizgi, kalite puanına göre beklenen fiyatı gösterir: çizginin altındaki
+        ilanlar ucuz, üstündekiler pahalı. Ayrıntı için noktanın üzerine gelin, ilanı açmak için tıklayın.
+      </p>
       <p class="sub" id="fit-text"></p>
       <div class="legend" id="legend" hidden>
-        <span><i class="key-dot" style="background: var(--deal)"></i>Skoruna göre ucuz</span>
-        <span><i class="key-dot" style="background: var(--pricey)"></i>Skoruna göre pahalı</span>
+        <span><i class="key-dot" style="background: var(--deal)"></i>Ucuz</span>
+        <span><i class="key-dot" style="background: var(--fair)"></i>Normal fiyat</span>
+        <span><i class="key-dot" style="background: var(--pricey)"></i>Pahalı</span>
         <span><i class="key-line"></i>Beklenen fiyat</span>
       </div>
       <div class="chart" id="chart"></div>
     </section>
 
-    <section class="panel">
-      <h2>Uygun ilanlar</h2>
-      <p class="sub">Beklenen fiyata göre en ucuzdan pahalıya. Skorun üstüne gelince puan dökümü görünür.</p>
+    <section class="panel" data-anchor="eligible">
+      <h2>En iyi fırsatlar</h2>
+      <p class="sub">En ucuzdan en pahalıya sıralı. Puanın üzerine gelince puanı nelerin etkilediği görünür.</p>
       <div class="table-wrap"><table id="eligible"></table></div>
     </section>
 
-    <section class="panel">
-      <h2>Elenen ilanlar</h2>
-      <div class="table-wrap"><table id="excluded"></table></div>
+    <section class="panel" data-anchor="excluded">
+      <details>
+        <summary><h2>Aradığınız özelliklere uymayan ilanlar <span id="excluded-count" class="count"></span></h2></summary>
+        <div class="table-wrap"><table id="excluded"></table></div>
+      </details>
+    </section>
+
+    <section class="panel" id="settings-panel" data-anchor="settings">
+      <details id="settings-box">
+        <summary><h2>Puan ayarları</h2></summary>
+        <p class="sub">
+          Her araç <span id="base-score">100</span> puandan başlar, aşağıdaki durumlar puanı düşürür. Sizin için
+          önemli olan bir şeyin sayısını büyütün; önemsiz olanınkini küçültün ya da 0 yazın.
+        </p>
+        <p class="sub">
+          Değişiklikler kendiliğinden kaydedilir. Bütün ilanların puanı ve "ucuz / pahalı" değerlendirmesi hemen yenilenir.
+        </p>
+        <div id="settings-form" class="settings"></div>
+        <div class="actions">
+          <button id="settings-reset">Önerilen değerlere dön</button>
+          <span id="settings-status" class="status" role="status" aria-live="polite"></span>
+        </div>
+      </details>
+    </section>
+
+    <section class="panel" data-anchor="backup">
+      <details>
+        <summary><h2>Yedekleme</h2></summary>
+        <p class="sub">Kaydedilen ilanları dosyaya alabilir, başka bir bilgisayara taşıyabilirsiniz.</p>
+        <div class="actions">
+          <button id="export-csv">Bu modeli Excel'e aktar (CSV)</button>
+          <button id="export-json">Tüm ilanları yedekle</button>
+          <label class="btn">Yedekten geri yükle<input type="file" id="import-json" accept=".json,application/json" hidden /></label>
+        </div>
+      </details>
     </section>
 
     <div class="tooltip" id="tooltip" hidden></div>
@@ -48,6 +94,7 @@
     <script src="../src/lib/regression.js"></script>
     <script src="../src/lib/storage.js"></script>
     <script src="scatter.js"></script>
+    <script src="settings.js"></script>
     <script src="dashboard.js"></script>
   </body>
 </html>

@@ -22,22 +22,41 @@ SCC.fitLine = function (points) {
   return { slope, intercept, r2, n };
 };
 
-SCC.analyze = function (listings, config = SCC.config) {
-  const rows = listings.map((listing) => ({ listing, ...SCC.evaluate(listing, config) }));
+// Scores and fits one "Marka Seri" group (see SCC.groupKey) with that group's config.
+SCC.analyzeGroup = function (key, listings, config = SCC.config) {
+  const groupConfig = SCC.configFor(key, config);
+  const rows = listings.map((stored) => {
+    const listing = SCC.withOverrides(stored);
+    return { listing, ...SCC.evaluate(listing, groupConfig) };
+  });
   const eligible = rows.filter((r) => r.eligible);
-  const model =
-    eligible.length >= config.minListingsForFit
+  const fit =
+    eligible.length >= groupConfig.minListingsForFit
       ? SCC.fitLine(eligible.map((r) => ({ x: r.score, y: r.listing.price })))
       : null;
 
-  if (model) {
+  if (fit) {
     for (const r of eligible) {
-      r.predicted = model.slope * r.score + model.intercept;
+      r.predicted = fit.slope * r.score + fit.intercept;
       r.diff = r.listing.price - r.predicted;
       r.diffPct = r.diff / r.predicted;
+      r.verdict = Math.abs(r.diffPct) <= groupConfig.fairPriceBand ? 'fair' : r.diff < 0 ? 'cheap' : 'dear';
     }
     eligible.sort((a, b) => a.diffPct - b.diffPct);
   }
 
-  return { rows, eligible, excluded: rows.filter((r) => !r.eligible), model };
+  return { key, config: groupConfig, rows, eligible, excluded: rows.filter((r) => !r.eligible), fit };
+};
+
+// Every group fitted separately, largest first.
+SCC.analyze = function (listings, config = SCC.config) {
+  const byKey = new Map();
+  for (const listing of listings) {
+    const key = SCC.groupKey(listing);
+    if (!byKey.has(key)) byKey.set(key, []);
+    byKey.get(key).push(listing);
+  }
+  return [...byKey]
+    .map(([key, group]) => SCC.analyzeGroup(key, group, config))
+    .sort((a, b) => b.rows.length - a.rows.length || a.key.localeCompare(b.key, 'tr'));
 };

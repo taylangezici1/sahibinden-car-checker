@@ -1,31 +1,69 @@
 {
   "manifest_version": 3,
-  "name": "Sahibinden Car Checker",
-  "version": "0.1.0",
-  "description": "Personal used-car listing checker for sahibinden.com",
-  "permissions": ["storage", "unlimitedStorage"],
-  "host_permissions": ["https://www.sahibinden.com/*"],
+  "name": "Oto Fiyat Rehberi",
+  "version": "0.3.2",
+  "description": "sahibinden.com'daki araba ilanlarına puan verir ve fiyatı aynı modeldeki diğer ilanlarla karşılaştırır.",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "permissions": [
+    "storage",
+    "unlimitedStorage"
+  ],
+  "host_permissions": [
+    "https://www.sahibinden.com/*"
+  ],
   "background": {
     "service_worker": "src/background.js"
   },
   "content_scripts": [
     {
-      "matches": ["https://www.sahibinden.com/ilan/vasita-otomobil-*"],
+      "matches": [
+        "https://www.sahibinden.com/ilan/vasita-otomobil-*",
+        "https://www.sahibinden.com/ilan/vasita-arazi-suv-pickup-*"
+      ],
       "js": [
         "src/lib/config.js",
         "src/lib/format.js",
         "src/lib/scoring.js",
         "src/lib/regression.js",
         "src/lib/storage.js",
+        "src/lib/logo.js",
         "src/content/parser.js",
         "src/content/panel.js",
         "src/content/content.js"
       ],
       "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://www.sahibinden.com/*"
+      ],
+      "exclude_matches": [
+        "https://www.sahibinden.com/ilan/*"
+      ],
+      "js": [
+        "src/lib/config.js",
+        "src/lib/format.js",
+        "src/lib/scoring.js",
+        "src/lib/regression.js",
+        "src/lib/storage.js",
+        "src/lib/logo.js",
+        "src/content/parser.js",
+        "src/content/results.js"
+      ],
+      "run_at": "document_idle"
     }
   ],
   "action": {
-    "default_title": "Sahibinden Car Checker",
-    "default_popup": "popup/popup.html"
+    "default_title": "Oto Fiyat Rehberi",
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png"
+    }
   }
 }

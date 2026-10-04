@@ -39,6 +39,18 @@ SCC.format = {
     return `${SCC.format.signed(ratio * 100, 1)}%`;
   },
 
+  // Quality score as shown to the user: whole points read easier than 87,3.
+  score(n) {
+    if (n == null || !Number.isFinite(n)) return '–';
+    return Math.round(n).toLocaleString('tr-TR');
+  },
+
+  // Unsigned, Turkish style: 0.032 -> "%3,2"
+  percent(ratio) {
+    if (ratio == null || !Number.isFinite(ratio)) return '–';
+    return `%${Math.abs(ratio * 100).toLocaleString('tr-TR', { maximumFractionDigits: 1 })}`;
+  },
+
   clean(text) {
     return (text || '').replace(/\s+/g, ' ').trim();
   },
