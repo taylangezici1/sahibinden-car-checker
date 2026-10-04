@@ -148,8 +148,11 @@
     const body = rows
       .map((r, i) => {
         const l = r.listing;
-        return `<tr data-anchor="e-${esc(l.id)}">
-          <td class="num">${start + i + 1}</td>
+        const rank = start + i + 1;
+        // The order only means something once there is a price line.
+        const podium = group.fit && rank <= 3;
+        return `<tr data-anchor="e-${esc(l.id)}"${podium ? ' class="podium"' : ''}>
+          <td class="num">${podium ? `<span class="medal">${rank}</span>` : rank}</td>
           <td class="title"><a href="${esc(l.url)}" target="_blank">${esc(l.title || l.id)}</a></td>
           <td class="num">${l.year ?? '–'}</td>
           <td class="text">${esc(r.trim || l.model || '–')}</td>

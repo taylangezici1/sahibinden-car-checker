@@ -61,6 +61,13 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
     .list li span:last-child { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
     .verdict .list { margin-top: 10px; color: var(--ink); }
     .verdict .list li { border-color: rgba(0,0,0,.08); }
+    .rank { display: flex; align-items: center; gap: 12px; margin-top: 10px; padding: 10px 12px; line-height: 1.35;
+            color: #5c3b00; background: #fff8e6; border: 2px solid #f3d27a; border-radius: 10px; }
+    .rank.podium { background: #fff1c7; border-color: #e9b42a; }
+    .rank b { font-size: 17px; }
+    .rank-num { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%;
+                font-size: 19px; font-weight: 800; color: #3d2900; background: #f8d77a; }
+    .podium .rank-num { background: #f5b301; }
     .reasons { margin-top: 6px; color: var(--ink); }
     .reasons li { position: relative; padding: 2px 0 2px 18px; }
     .reasons li::before { content: "•"; position: absolute; left: 4px; }
@@ -126,14 +133,34 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
     return { tone: 'fair', icon: '●', word: 'Normal fiyat', text: `Bu kalitedeki bir araç için beklenen fiyatta (${percent(row.diffPct)} fark).` };
   }
 
+  // Places near the top of the deals table get a highlighted block of their own.
+  // A tier only counts when there are more cars than it covers ("top 10 of 6" says nothing).
+  function rankHighlight(rank, total, key) {
+    const tier =
+      rank === 1 && total > 1 ? 'En iyi fırsat!'
+      : rank <= 3 && total > 3 ? 'En iyi 3 fırsattan biri'
+      : rank <= 10 && total > 10 ? 'En iyi 10 fırsattan biri'
+      : null;
+    if (!tier) return '';
+    return `<div class="rank${rank <= 3 ? ' podium' : ''}">
+      <span class="rank-num">${rank}.</span>
+      <span><b>${tier}</b><br>${int(total)} ${esc(key)} ilanı içinde ${rank}. sırada</span>
+    </div>`;
+  }
+
   function verdictSection(row, group, v) {
     const reasons = row.eligible ? '' : `<ul class="reasons">${row.reasons.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>`;
+    // Same order as the dashboard's "En iyi fırsatlar" table (cheapest for its score first).
+    const rank = group.eligible.indexOf(row) + 1;
+    const total = group.eligible.length;
+    const top = row.eligible && group.fit ? rankHighlight(rank, total, group.key) : '';
     const prices =
       row.eligible && group.fit
         ? `<ul class="list">${listItems([
             ['İlan fiyatı', tl(row.listing.price)],
             ['Beklenen fiyat', tl(row.predicted)],
-          ])}</ul>
+            ...(top ? [] : [['Fırsat sırası', `${int(total)} ilan içinde ${rank}.`]]),
+          ])}</ul>${top}
           <p class="hint">${group.eligible.length} ${esc(group.key)} ilanına göre hesaplandı.</p>`
         : '';
     return `
