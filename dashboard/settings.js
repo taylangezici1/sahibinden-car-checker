@@ -26,6 +26,8 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
 
   // `{}` marks where the number box goes. Paths are under config.scoring.
   // kind: 'penalty' = shown positive, stored negative; 'percent' = ratio shown as 0-100.
+  // The cards flow down two columns (dashboard.css); the long paint card goes last so
+  // the three short ones fill the first column and the columns come out even.
   function sections(d) {
     return [
       {
@@ -33,14 +35,6 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
         fields: [
           { path: ['km', 'points'], kind: 'penalty', text: `Her ${int(d.km.every)} km için {} puan düşsün` },
           { path: ['perYearOld'], kind: 'penalty', text: 'Araç her yıl eskidikçe {} puan düşsün' },
-        ],
-      },
-      {
-        title: 'Boyalı parçalar',
-        note: 'Tamamen boyanmış bir parça için kaç puan düşsün? Tavan ve kaput gibi önemli parçalar daha çok düşürmeli.',
-        fields: [
-          ...PAINT_PARTS.map(([key, label]) => ({ path: ['paint', key], kind: 'penalty', text: `${label}: {} puan` })),
-          { path: ['localPaintFactor'], kind: 'percent', text: 'Lokal boya, tam boyanın yüzde {} kadarı sayılsın (50 = yarısı)' },
         ],
       },
       {
@@ -58,6 +52,14 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
           ...Object.keys(d.gear).map((g) => ({ path: ['gear', g], kind: 'penalty', text: `${g} vitesse {} puan düşsün` })),
           ...Object.keys(d.color).map((c) => ({ path: ['color', c], kind: 'penalty', text: `${c} renkse {} puan düşsün` })),
           { path: ['noWarranty'], kind: 'penalty', text: 'Garantisi yoksa {} puan düşsün' },
+        ],
+      },
+      {
+        title: 'Boyalı parçalar',
+        note: 'Tamamen boyanmış bir parça için kaç puan düşsün? Tavan ve kaput gibi önemli parçalar daha çok düşürmeli.',
+        fields: [
+          ...PAINT_PARTS.map(([key, label]) => ({ path: ['paint', key], kind: 'penalty', text: `${label}: {} puan` })),
+          { path: ['localPaintFactor'], kind: 'percent', text: 'Lokal boya, tam boyanın yüzde {} kadarı sayılsın (50 = yarısı)' },
         ],
       },
     ];
