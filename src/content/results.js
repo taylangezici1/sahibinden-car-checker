@@ -37,6 +37,8 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
     header svg { width: 32px; height: 32px; display: block; }
     header b { flex: 1; }
     p { margin: 0 0 10px; }
+    .hint { margin: 8px 0 0; color: #45443f; font-size: 15px; }
+    .bar + .hint { margin: 0 0 10px; }
     .ok { color: #0b6b2e; font-weight: 600; }
     .bad { color: #b42318; font-weight: 600; }
     .bar { height: 12px; margin: 0 0 12px; overflow: hidden; background: #f4f4f1; border: 1px solid #e3e2dc; border-radius: 999px; }
@@ -53,18 +55,34 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
   `;
   const VERDICT = { cheap: 'Ucuz', fair: 'Normal fiyat', dear: 'Pahalı' };
 
-  // ---- Saving: one listing page at a time, with a pause, so it doesn't look like a bot.
+  // ---- Saving. sahibinden bans clients that fetch quickly, so every listing fetch,
+  // from any sahibinden tab, takes one shared lock and waits until the shared
+  // nextFetchAt (a random 10-20 s after the previous fetch, see config.fetching).
+  // The first sign of a block stops all fetching for cooldownMinutes.
+
+  const LOCK = 'oto-fiyat-rehberi-fetch';
+  const pageLoadedAt = Date.now();
+  const fetching = () => SCC.config.fetching;
+  const randomDelay = () => {
+    const { minDelaySeconds: min, maxDelaySeconds: max } = fetching();
+    return (min + Math.random() * (max - min)) * 1000;
+  };
+  const clock = (t) => new Date(t).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+  // A captcha or "unusual traffic" page instead of a listing.
+  const BOT_CHECK = /captcha|turnstile|olağan ?dışı|robot olmadığ|güvenlik doğrulama/i;
 
   const state = new Map(); // id -> 'queued' | 'saving' | { error }; saved ones are read from storage
-  const jobs = []; // [{ id, url }] waiting their turn
+  const jobs = []; // [{ id, url, cancelled }] waiting their turn
+  let current = null;
   let working = false;
-  let failStreak = 0;
+  let errorStreak = 0;
   let batch = null; // the "Hepsini kaydet" run: { ids, done, failed, finished, stopped }
+  let blockedUntil = 0; // mirrors storage fetchBlockedUntil, for painting
 
   function enqueue(id, url) {
     if (state.get(id) === 'queued' || state.get(id) === 'saving') return;
     state.set(id, 'queued');
-    jobs.push({ id, url });
+    jobs.push({ id, url, cancelled: false });
     work();
   }
 
@@ -72,20 +90,20 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
     if (working) return;
     working = true;
     while (jobs.length) {
-      const { id, url } = jobs.shift();
-      state.set(id, 'saving');
+      current = jobs.shift();
       paint();
-      const result = await fetchAndSave(id, url);
-      if (batch?.ids.has(id)) {
+      const result = await fetchAndSave(current);
+      if (result === 'cancelled') state.delete(current.id);
+      if (batch?.ids.has(current.id) && result !== 'cancelled') {
         batch.done++;
         if (result !== 'ok') batch.failed++;
       }
-      failStreak = result === 'ok' ? 0 : failStreak + 1;
-      // A refusal, or several pages in a row that aren't listings (a bot check page),
-      // means sahibinden wants us to slow down: stop instead of pushing on.
-      if (result === 'blocked' || failStreak >= 3) stop('blocked');
+      errorStreak = result === 'error' ? errorStreak + 1 : 0;
+      if (result === 'blocked') stop('blocked');
+      // Not a listing, or several failures in a row: something is off, stop rather than push on.
+      else if (result === 'unreadable' || errorStreak >= 3) stop('unreadable');
+      current = null;
       paint();
-      if (jobs.length) await sleep(1000 + Math.random() * 1000);
     }
     working = false;
     if (batch) batch.finished = true;
@@ -93,20 +111,61 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
   }
 
   function stop(reason) {
-    for (const { id } of jobs.splice(0)) state.delete(id);
-    if (batch && !batch.finished) batch.stopped = reason;
+    for (const job of jobs.splice(0)) {
+      job.cancelled = true;
+      state.delete(job.id);
+    }
+    // A job still waiting for its turn is called off too; one already downloading finishes.
+    if (current) current.cancelled = true;
+    if (batch && !batch.finished && !batch.stopped) batch.stopped = reason;
   }
 
-  async function fetchAndSave(id, url) {
+  // Resolves to { res } or { cancelled } or { blockedUntil }.
+  function throttledFetch(job) {
+    return navigator.locks.request(LOCK, async () => {
+      const shared = await chrome.storage.local.get(['nextFetchAt', 'fetchBlockedUntil']);
+      if (Date.now() < (shared.fetchBlockedUntil || 0)) return { blockedUntil: shared.fetchBlockedUntil };
+      // Never right after this page's own load either.
+      const earliest = Math.max(shared.nextFetchAt || 0, pageLoadedAt + fetching().minDelaySeconds * 1000);
+      if (earliest > Date.now()) await sleep(earliest - Date.now());
+      if (job.cancelled) return { cancelled: true };
+      state.set(job.id, 'saving');
+      paint();
+      try {
+        return { res: await fetch(job.url, { credentials: 'include' }) };
+      } finally {
+        await chrome.storage.local.set({ nextFetchAt: Date.now() + randomDelay() });
+      }
+    });
+  }
+
+  async function block(id) {
+    const until = Date.now() + fetching().cooldownMinutes * 60 * 1000;
+    await chrome.storage.local.set({ fetchBlockedUntil: until });
+    state.set(id, { error: `sahibinden erişimi kısıtladı. Saat ${clock(until)} olunca tekrar deneyin.` });
+    return 'blocked';
+  }
+
+  async function fetchAndSave(job) {
+    const { id, url } = job;
     try {
-      const res = await fetch(url, { credentials: 'include' });
-      if (res.status === 403 || res.status === 429) {
-        state.set(id, { error: 'sahibinden şu an izin vermiyor. Birkaç dakika sonra tekrar deneyin.' });
+      const got = await throttledFetch(job);
+      if (got.cancelled) return 'cancelled';
+      if (got.blockedUntil) {
+        state.set(id, { error: `Güvenlik için kayıt şimdilik kapalı. Saat ${clock(got.blockedUntil)} olunca tekrar deneyin.` });
         return 'blocked';
       }
+      const res = got.res;
+      const leftListing = res.redirected && !new URL(res.url).pathname.startsWith('/ilan/');
+      if (res.status === 403 || res.status === 429 || leftListing) return block(id);
       if (!res.ok) throw new Error(`sahibinden sayfayı vermedi (${res.status})`);
-      const listing = SCC.parseListing(new DOMParser().parseFromString(await res.text(), 'text/html'), url);
-      if (!listing) throw new Error('İlan sayfası okunamadı');
+      const html = await res.text();
+      const listing = SCC.parseListing(new DOMParser().parseFromString(html, 'text/html'), url);
+      if (!listing && BOT_CHECK.test(html)) return block(id);
+      if (!listing) {
+        state.set(id, { error: 'İlan sayfası okunamadı. İlanı açarak kaydedebilirsiniz.' });
+        return 'unreadable';
+      }
       state.delete(id);
       await SCC.storage.upsert(listing);
       return 'ok';
@@ -115,6 +174,13 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
       state.set(id, { error: `${err.message}. İlanı açarak da kaydedebilirsiniz.` });
       return 'error';
     }
+  }
+
+  // "yaklaşık 4 dakika" for n more listings at the average delay.
+  function duration(n) {
+    const { minDelaySeconds: min, maxDelaySeconds: max } = fetching();
+    const minutes = Math.ceil((n * (min + max)) / 2 / 60);
+    return minutes <= 1 ? 'yaklaşık 1 dakika' : `yaklaşık ${minutes} dakika`;
   }
 
   // ---- Buttons under each listing.
@@ -194,23 +260,34 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
     const total = links.size;
     const saved = [...links.keys()].filter((id) => rows.has(id)).length;
     const unsaved = total - saved;
+    const blocked = Date.now() < blockedUntil;
     let body;
     if (batch && !batch.finished) {
       const n = batch.ids.size;
       body = `<p>Kaydediliyor: <b>${batch.done} / ${n}</b></p>
         <div class="bar" role="progressbar" aria-valuenow="${batch.done}" aria-valuemax="${n}"><i style="width: ${(batch.done / n) * 100}%"></i></div>
+        <p class="hint">Engellenmemek için ilanlar yavaşça, tek tek kaydediliyor: ${duration(n - batch.done)} kaldı. Bu sayfayı kapatmayın.</p>
         <div class="acts"><button class="secondary" data-act="stop">Durdur</button></div>`;
     } else {
+      const kept = batch ? batch.done - batch.failed : 0;
       const report = !batch
         ? ''
         : batch.stopped === 'blocked'
-          ? `<p class="bad">sahibinden şu an daha fazla ilana izin vermiyor, kayıt durduruldu. Birkaç dakika bekleyip tekrar deneyin.</p>`
-          : batch.stopped
-            ? `<p>Durduruldu. ${batch.done - batch.failed} ilan kaydedildi.</p>`
-            : `<p class="ok">✓ ${batch.done - batch.failed} ilan kaydedildi.${batch.failed ? ` <span class="bad">${batch.failed} ilan kaydedilemedi.</span>` : ''}</p>`;
-      const action = unsaved
-        ? `<button class="primary" data-act="all">${saved ? `Kalan ${unsaved} ilanı kaydet` : `Sayfadaki ${unsaved} ilanın hepsini kaydet`}</button>`
-        : `<button class="primary" data-act="dash">Kaydedilen ilanları karşılaştır</button>`;
+          ? `<p class="bad">sahibinden erişimi kısıtladı, kayıt durduruldu.</p>`
+          : batch.stopped === 'unreadable'
+            ? `<p class="bad">sahibinden beklenmedik bir sayfa gösterdi, güvenlik için kayıt durduruldu. ${kept} ilan kaydedildi.</p>`
+            : batch.stopped
+              ? `<p>Durduruldu. ${kept} ilan kaydedildi.</p>`
+              : `<p class="ok">✓ ${kept} ilan kaydedildi.${batch.failed ? ` <span class="bad">${batch.failed} ilan kaydedilemedi.</span>` : ''}</p>`;
+      let action;
+      if (blocked) {
+        action = `<p class="hint">Engellenmemek için toplu kayıt şimdilik kapalı. Saat <b>${clock(blockedUntil)}</b> olunca kendiliğinden açılır.</p>`;
+      } else if (unsaved) {
+        action = `<button class="primary" data-act="all">${saved ? `Kalan ${unsaved} ilanı kaydet` : `Sayfadaki ${unsaved} ilanın hepsini kaydet`}</button>
+          <p class="hint">Engellenmemek için ilanlar yavaşça, tek tek kaydedilir: ${duration(unsaved)} sürer.</p>`;
+      } else {
+        action = `<button class="primary" data-act="dash">Kaydedilen ilanları karşılaştır</button>`;
+      }
       body = `${report}
         <p>Bu sayfada ${total} ilan var${saved ? `, ${saved} tanesi kayıtlı` : ''}.</p>
         <div class="acts">${action}</div>`;
@@ -229,7 +306,7 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
     root.querySelector('[data-act="all"]')?.addEventListener('click', () => {
       const ids = [...links.keys()].filter((id) => !rows.has(id) && state.get(id) !== 'queued' && state.get(id) !== 'saving');
       batch = { ids: new Set(ids), done: 0, failed: 0, finished: false, stopped: null };
-      failStreak = 0;
+      errorStreak = 0;
       for (const id of ids) enqueue(id, links.get(id));
     });
     root.querySelector('[data-act="stop"]')?.addEventListener('click', () => {
@@ -241,8 +318,13 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
     );
   }
 
+  let unblockTimer;
   async function paint() {
     await SCC.storage.loadSettings();
+    blockedUntil = (await chrome.storage.local.get('fetchBlockedUntil')).fetchBlockedUntil || 0;
+    // Bring the save-all button back by itself once the cooldown is over.
+    clearTimeout(unblockTimer);
+    if (blockedUntil > Date.now()) unblockTimer = setTimeout(paint, blockedUntil - Date.now() + 1000);
     const rows = new Map(SCC.analyze(await SCC.storage.list()).flatMap((g) => g.rows.map((r) => [r.listing.id, r])));
     paintButtons(rows);
     // Not on the home page, whose showcase also links to cars.
@@ -257,6 +339,6 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
     timer = setTimeout(() => addButtons() && paint(), 300);
   }).observe(document.body, { childList: true, subtree: true });
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === 'local' && (changes.listings || changes.settings)) paint();
+    if (area === 'local' && (changes.listings || changes.settings || changes.fetchBlockedUntil)) paint();
   });
 })();

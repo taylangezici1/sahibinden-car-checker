@@ -72,4 +72,14 @@ SCC.config = {
   // A price within this share of the expected price is shown as "Normal fiyat"
   // rather than cheap or expensive.
   fairPriceBand: 0.03,
+
+  // Saving from search results downloads each listing page. sahibinden bans clients
+  // that fetch fast (1-2 s apart was enough to get banned), so requests from all tabs
+  // share one queue, wait a random delay in between, and stop for a while on the
+  // first sign of a block.
+  fetching: {
+    minDelaySeconds: 10,
+    maxDelaySeconds: 20,
+    cooldownMinutes: 60,
+  },
 };

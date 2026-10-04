@@ -92,9 +92,13 @@ Dikkat edilecekler:
 ## Kullanım
 
 - **İlan sayfası:** Bir araba ilanı açtığınızda panel kendiliğinden çıkar ve ilan kaydedilir.
-- **Arama sonuçları:** Sağ alttaki kutudan **Hepsini kaydet**'e basın. İlanlar arka planda tek tek,
-  1–2 saniye arayla indirilir. sahibinden izin vermezse (403/429) ya da üst üste 3 sayfa okunamazsa
-  kayıt kendiliğinden durur; birkaç dakika sonra tekrar deneyebilirsiniz.
+- **Arama sonuçları:** Sağ alttaki kutudan **Hepsini kaydet**'e basın. sahibinden hızlı istek
+  yapanları engellediği için ilanlar arka planda tek tek, aralarında rastgele 10–20 saniye beklenerek
+  indirilir; 20 ilanlık bir sayfa yaklaşık 5 dakika sürer ve bu sırada sayfa açık kalmalıdır. Birden
+  fazla sekmede basılsa da istekler tek sıradan geçer. sahibinden engellemeye başlarsa (403/429,
+  doğrulama sayfası ya da ilan dışı bir sayfaya yönlendirme) kayıt durur ve 60 dakika boyunca kapalı
+  kalır; ilan olmayan bir sayfa gelirse de güvenlik için durur. Bu süreler `config.js` içindeki
+  `fetching` bölümünden değiştirilebilir.
 - **Karşılaştırma sayfası:** Araç çubuğundaki simgeye tıklayıp **Kaydedilen ilanları karşılaştır**'a
   ya da paneldeki mavi düğmeye basın.
 - **Puan ayarları:** Karşılaştırma sayfasında **⚙ Puan ayarları**. Değişiklikler kendiliğinden kaydedilir.
