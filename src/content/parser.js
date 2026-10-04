@@ -212,4 +212,15 @@ SCC.CAR_CATEGORIES = ['otomobil', 'arazi-suv-pickup'];
       info,
     };
   };
+
+  // Why a page that should be a listing isn't one: 'botcheck' (captcha / unusual
+  // traffic page: stop saving and let the person solve it), 'gone' (listing taken
+  // down), or null when it's something else.
+  SCC.pageProblem = function (doc = document) {
+    const text = `${doc.title} ${doc.body?.innerText ?? doc.body?.textContent ?? ''}`;
+    const html = doc.documentElement?.innerHTML ?? '';
+    if (/captcha|turnstile/i.test(html) || /olağan ?dışı|robot olmadığ|güvenlik doğrulama/i.test(text)) return 'botcheck';
+    if (/yayında değil|yayından kaldırıl|ilan bulunamadı/i.test(text)) return 'gone';
+    return null;
+  };
 })();

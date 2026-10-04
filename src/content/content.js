@@ -1,7 +1,14 @@
 (async () => {
+  // When "Kaydet" on a results page opened this tab, the background script waits
+  // for this to close it again (see saveViaTab in background.js). Otherwise it's ignored.
+  const done = (status) => chrome.runtime.sendMessage({ type: 'listingDone', status }).catch(() => {});
+
   try {
     const listing = SCC.parseListing(document, location.href);
     if (!listing) {
+      const problem = SCC.pageProblem(document);
+      done(problem || 'unreadable');
+      if (problem) return; // sahibinden's own page says what's wrong
       const labels = Object.keys(SCC.readInfoList(document));
       console.warn('[SCC] İlan okunamadı. Bilgi tablosundan okunan başlıklar:', labels);
       SCC.renderNotice('Bu ilan okunamadı', [
@@ -30,12 +37,14 @@
     };
 
     await SCC.storage.upsert(listing);
+    done('ok');
     await render();
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area === 'local' && (changes.listings || changes.settings)) render();
     });
   } catch (err) {
     console.error('[SCC]', err);
+    done('unreadable');
     SCC.renderNotice('Bir hata oluştu', [String(err?.stack || err)]);
   }
 })();

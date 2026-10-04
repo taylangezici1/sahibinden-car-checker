@@ -14,7 +14,7 @@ Arayüz, teknik bilgisi olmayan biri de rahatça kullanabilsin diye sade Türkç
   değişen parçalar (hangi parça olduğuna göre), tramer, vites, renk ve garanti.
 - Aynı modelden kaydedilen ilanlara bakarak fiyatın, aracın puanına göre **ucuz, normal ya da pahalı**
   olduğunu söyler.
-- Arama sonuçlarındaki ilanları **açmadan, tek tıkla kaydeder**.
+- Arama sonuçlarındaki ilanları **tek tıkla kaydeder**: ilan arka planda açılıp kapanır.
 - Kaydedilen bütün ilanları model model karşılaştıran bir sayfa sunar.
 
 ## Ekran görüntüleri
@@ -33,10 +33,10 @@ Tramer ilanda yazmıyorsa ya da yanlışsa panelden girilebilir. Girilen değer 
 
 ### Arama sonuçları
 
-Sağ alttaki kutu sayfadaki bütün ilanları tek seferde kaydeder. Her ilanın altında da kendi düğmesi
-vardır; kaydedilen ilanın puanı ve sonucu orada görünür.
+Her ilanın altında bir **Kaydet** düğmesi vardır; kaydedilen ilanın puanı ve sonucu orada görünür.
+Sağ alttaki kutu sayfada kaç ilanın kayıtlı olduğunu gösterir ve karşılaştırma sayfasına götürür.
 
-<img src="docs/screenshots/arama.png" alt="Arama sonuçlarında Kaydet düğmeleri ve Hepsini kaydet kutusu">
+<img src="docs/screenshots/arama.png" alt="Arama sonuçlarında Kaydet düğmeleri ve karşılaştırma kutusu">
 
 ### Karşılaştırma sayfası
 
@@ -92,13 +92,11 @@ Dikkat edilecekler:
 ## Kullanım
 
 - **İlan sayfası:** Bir araba ilanı açtığınızda panel kendiliğinden çıkar ve ilan kaydedilir.
-- **Arama sonuçları:** Sağ alttaki kutudan **Hepsini kaydet**'e basın. sahibinden hızlı istek
-  yapanları engellediği için ilanlar arka planda tek tek, aralarında rastgele 10–20 saniye beklenerek
-  indirilir; 20 ilanlık bir sayfa yaklaşık 5 dakika sürer ve bu sırada sayfa açık kalmalıdır. Birden
-  fazla sekmede basılsa da istekler tek sıradan geçer. sahibinden engellemeye başlarsa (403/429,
-  doğrulama sayfası ya da ilan dışı bir sayfaya yönlendirme) kayıt durur ve 60 dakika boyunca kapalı
-  kalır; ilan olmayan bir sayfa gelirse de güvenlik için durur. Bu süreler `config.js` içindeki
-  `fetching` bölümünden değiştirilebilir.
+- **Arama sonuçları:** İlanın altındaki **Kaydet**'e basın. İlan hemen arka planda yeni bir sekmede
+  açılır, panel onu okuyup kaydeder ve sekme kapanır; yani ilan gerçek bir ziyaretle açılmış olur.
+  (Sayfaları sekme açmadan arka planda indirmek hesapların engellenmesine yol açtı.) sahibinden
+  doğrulama sayfası gösterirse (ya da ilan 30 saniye içinde açılmaz ve başka bir sayfaya yönlenirse)
+  o sekme kapanmaz, öne gelir; doğrulamayı orada tamamlayabilirsiniz.
 - **Karşılaştırma sayfası:** Araç çubuğundaki simgeye tıklayıp **Kaydedilen ilanları karşılaştır**'a
   ya da paneldeki mavi düğmeye basın.
 - **Puan ayarları:** Karşılaştırma sayfasında **⚙ Puan ayarları**. Değişiklikler kendiliğinden kaydedilir.
@@ -116,7 +114,8 @@ Dikkat edilecekler:
 - `src/lib/storage.js`: ilanlar, elle girilen değerler ve kullanıcı ayarları.
 - `src/content/parser.js`: ilan sayfasını okur (bilgi tablosu, fiyat, boya/değişen şeması, tramer). Desteklenen kategoriler `SCC.CAR_CATEGORIES`.
 - `src/content/panel.js`, `content.js`: ilan sayfasındaki panel.
-- `src/content/results.js`: arama sonuçlarındaki düğmeler ve "Hepsini kaydet" kutusu.
+- `src/content/results.js`: arama sonuçlarındaki Kaydet düğmeleri ve sağ alttaki kutu.
+- `src/background.js`: ilanı arka planda sekmede açıp kapatan kısım (`saveViaTab`) ve karşılaştırma sayfasını açma.
 - `dashboard/`: karşılaştırma sayfası (grafik, tablolar, `settings.js` ile puan ayarları formu).
 - `popup/`: araç çubuğu simgesine tıklayınca açılan küçük pencere.
 - `icons/logo.svg`: logo. `icon-*.png` dosyaları bundan üretildi; sahibinden sayfalarındaki arayüz `src/lib/logo.js` içindeki aynı çizimi kullanır.
