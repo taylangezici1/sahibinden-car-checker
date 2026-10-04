@@ -73,6 +73,26 @@ için o modelden en az 5 uygun ilan gerekir.
 
 **Veriler.** Her şey tarayıcının kendi deposunda (`chrome.storage.local`) saklanır, hiçbir yere gönderilmez.
 
+### Kaydet düğmesi neden ilanı sekmede açıyor?
+
+Arama sonuçlarındaki **Kaydet** düğmesi üç denemede bugünkü haline geldi:
+
+1. **Arka planda indirme.** İlk sürüm ilan sayfasını sekme açmadan, arka planda indirip (`fetch`)
+   okuyordu. Bir sayfadaki bütün ilanları 1–2 saniye arayla indirmek hesabın engellenmesine yol açtı.
+2. **Yavaşlatılmış indirme.** İstekler arasına 10–20 saniye bekleme, bütün sekmeler için tek bir sıra
+   ve engel görülünce 60 dakika durma eklendi. Kaydet düğmelerine art arda basmak yine de başka bir
+   hesabın engellenmesine yol açtı. Arka planda indirilen sayfada sahibinden'in kendi kodları hiç
+   çalışmıyor; istek, sayfayı gerçekten açan birinin isteğine benzemiyordu.
+3. **Gerçek sekme (şimdiki hali).** Kaydet'e basınca ilan arka planda yeni bir sekmede normal şekilde
+   açılır, sayfadaki panel ilanı okuyup kaydeder ve sekme kapanır (`saveViaTab`, `src/background.js`).
+   Yani her tıklama, ilanı kendiniz yeni sekmede açıp kapatmanızla aynı şeydir. Bekleme ya da sıra
+   yoktur, sekme düğmeye basıldığı anda açılır.
+
+Bu, sahibinden'in korumasını atlatmak değil; eklenti yalnızca sizin tıkladığınız ilanı açar, toplu
+ya da kendiliğinden ilan açmaz. Yine de engellenmeyeceğinin garantisi yoktur: çok sayıda ilanı çok
+hızlı art arda kaydetmek, elle hızlı gezmek gibi, engellenmeye yol açabilir. sahibinden doğrulama
+sayfası gösterirse o sekme kapanmaz, öne gelir; doğrulamayı orada tamamlayabilirsiniz.
+
 ## Kurulum
 
 Eklenti Chrome'a "paketlenmemiş öğe" olarak yüklenir:
@@ -93,10 +113,10 @@ Dikkat edilecekler:
 
 - **İlan sayfası:** Bir araba ilanı açtığınızda panel kendiliğinden çıkar ve ilan kaydedilir.
 - **Arama sonuçları:** İlanın altındaki **Kaydet**'e basın. İlan hemen arka planda yeni bir sekmede
-  açılır, panel onu okuyup kaydeder ve sekme kapanır; yani ilan gerçek bir ziyaretle açılmış olur.
-  (Sayfaları sekme açmadan arka planda indirmek hesapların engellenmesine yol açtı.) sahibinden
-  doğrulama sayfası gösterirse (ya da ilan 30 saniye içinde açılmaz ve başka bir sayfaya yönlenirse)
-  o sekme kapanmaz, öne gelir; doğrulamayı orada tamamlayabilirsiniz.
+  açılır, panel onu okuyup kaydeder ve sekme kapanır (neden böyle olduğu için bkz.
+  [Kaydet düğmesi neden ilanı sekmede açıyor?](#kaydet-düğmesi-neden-ilanı-sekmede-açıyor)).
+  sahibinden doğrulama sayfası gösterirse (ya da ilan 30 saniye içinde açılmaz ve başka bir sayfaya
+  yönlenirse) o sekme kapanmaz, öne gelir; doğrulamayı orada tamamlayabilirsiniz.
 - **Karşılaştırma sayfası:** Araç çubuğundaki simgeye tıklayıp **Kaydedilen ilanları karşılaştır**'a
   ya da paneldeki mavi düğmeye basın.
 - **Puan ayarları:** Karşılaştırma sayfasında **⚙ Puan ayarları**. Değişiklikler kendiliğinden kaydedilir.
