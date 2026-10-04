@@ -45,6 +45,13 @@ SCC.format = {
     return Math.round(n).toLocaleString('tr-TR');
   },
 
+  // "bugün", "dün", "12 gün önce" for an ISO date.
+  ago(iso) {
+    const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+    if (!Number.isFinite(days)) return '';
+    return days <= 0 ? 'bugün' : days === 1 ? 'dün' : `${days} gün önce`;
+  },
+
   // Unsigned, Turkish style: 0.032 -> "%3,2"
   percent(ratio) {
     if (ratio == null || !Number.isFinite(ratio)) return '–';

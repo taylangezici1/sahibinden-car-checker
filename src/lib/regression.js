@@ -23,12 +23,19 @@ SCC.fitLine = function (points) {
 };
 
 // Scores and fits one "Marka Seri" group (see SCC.groupKey) with that group's config.
+// Listings that were taken down (goneAt) stay out of everything else and come back
+// on their own in `gone`, latest first.
 SCC.analyzeGroup = function (key, listings, config = SCC.config) {
   const groupConfig = SCC.configFor(key, config);
-  const rows = listings.map((stored) => {
+  const evaluate = (stored) => {
     const listing = SCC.withOverrides(stored);
     return { listing, ...SCC.evaluate(listing, groupConfig) };
-  });
+  };
+  const rows = listings.filter((l) => !l.goneAt).map(evaluate);
+  const gone = listings
+    .filter((l) => l.goneAt)
+    .map(evaluate)
+    .sort((a, b) => b.listing.goneAt.localeCompare(a.listing.goneAt));
   const eligible = rows.filter((r) => r.eligible);
   const fit =
     eligible.length >= groupConfig.minListingsForFit
@@ -45,7 +52,7 @@ SCC.analyzeGroup = function (key, listings, config = SCC.config) {
     eligible.sort((a, b) => a.diffPct - b.diffPct);
   }
 
-  return { key, config: groupConfig, rows, eligible, excluded: rows.filter((r) => !r.eligible), fit };
+  return { key, config: groupConfig, rows, eligible, excluded: rows.filter((r) => !r.eligible), gone, fit };
 };
 
 // Every group fitted separately, largest first.

@@ -45,7 +45,11 @@
 
     <section class="panel" data-anchor="eligible">
       <h2>En iyi fırsatlar</h2>
-      <p class="sub">En ucuzdan en pahalıya sıralı. Puanın üzerine gelince puanı nelerin etkilediği görünür.</p>
+      <p class="sub">
+        En ucuzdan en pahalıya sıralı. Puanın üzerine gelince puanı nelerin etkilediği görünür. Fiyatın altındaki
+        ▼ işareti, ilan ilk kaydedildiğinden beri fiyatın ne kadar düştüğünü gösterir.
+      </p>
+      <label class="filter"><input type="checkbox" id="only-drops" /> Sadece fiyatı düşen ilanlar <span id="drops-count" class="count"></span></label>
       <div class="table-wrap"><table id="eligible"></table></div>
       <div class="pager" id="eligible-pager" hidden></div>
     </section>
@@ -55,6 +59,18 @@
         <summary><h2>Aradığınız özelliklere uymayan ilanlar <span id="excluded-count" class="count"></span></h2></summary>
         <div class="table-wrap"><table id="excluded"></table></div>
         <div class="pager" id="excluded-pager" hidden></div>
+      </details>
+    </section>
+
+    <section class="panel" data-anchor="gone">
+      <details>
+        <summary><h2>Yayından kalkan ilanlar <span id="gone-count" class="count"></span></h2></summary>
+        <p class="sub">
+          Satılmış ya da satıcısı tarafından kaldırılmış olabilir. Bu ilanlar fiyat karşılaştırmasına ve sıralamaya
+          katılmaz; son fiyatları satış fiyatları hakkında fikir verebilir.
+        </p>
+        <div class="table-wrap"><table id="gone"></table></div>
+        <div class="pager" id="gone-pager" hidden></div>
       </details>
     </section>
 

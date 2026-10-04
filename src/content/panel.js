@@ -3,7 +3,7 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
 // The panel on a listing page. Written for a non-technical reader: the verdict
 // comes first in plain words, details are one click away.
 (() => {
-  const { tl, int, signed, percent, score } = SCC.format;
+  const { tl, int, signed, percent, score, ago } = SCC.format;
   const APP_NAME = chrome.runtime.getManifest().name;
 
   const LOGO = SCC.LOGO_SVG;
@@ -68,6 +68,10 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
     .rank-num { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%;
                 font-size: 19px; font-weight: 800; color: #3d2900; background: #f8d77a; }
     .podium .rank-num { background: #f5b301; }
+    .price-change { margin: 10px 0 0; padding: 8px 10px; font-weight: 700; background: var(--surface); border: 1px solid; border-radius: 8px; }
+    .price-change span { font-weight: 400; color: var(--ink-2); }
+    .price-change.down { color: var(--good); border-color: var(--good-line); }
+    .price-change.up { color: var(--bad); border-color: var(--bad-line); }
     .reasons { margin-top: 6px; color: var(--ink); }
     .reasons li { position: relative; padding: 2px 0 2px 18px; }
     .reasons li::before { content: "•"; position: absolute; left: 4px; }
@@ -148,6 +152,17 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
     </div>`;
   }
 
+  // "▼ Fiyatı düştü: 1.450.000 → 1.395.000 TL", since the listing was first saved.
+  function priceChangeLine(listing) {
+    const c = SCC.priceChange(listing);
+    if (!c) return '';
+    const down = c.diff < 0;
+    return `<p class="price-change ${down ? 'down' : 'up'}">
+      ${down ? '▼ Fiyatı düştü' : '▲ Fiyatı arttı'}: ${tl(c.from)} → ${tl(c.to)}
+      <span>(${tl(Math.abs(c.diff))}, ${ago(c.at)})</span>
+    </p>`;
+  }
+
   function verdictSection(row, group, v) {
     const reasons = row.eligible ? '' : `<ul class="reasons">${row.reasons.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>`;
     // Same order as the dashboard's "En iyi fırsatlar" table (cheapest for its score first).
@@ -167,6 +182,7 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
       <section class="verdict ${v.tone}">
         <div class="v-word"><span aria-hidden="true">${v.icon}</span>${esc(v.word)}</div>
         <p>${esc(v.text)}</p>
+        ${priceChangeLine(row.listing)}
         ${reasons}${prices}
       </section>`;
   }
@@ -308,15 +324,15 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
       </details>`;
   }
 
+  // A host can also come without a shadow root, e.g. in a page saved with the panel on it.
   function shadowRoot() {
     let host = document.getElementById('scc-panel-host');
     if (!host) {
       host = document.createElement('div');
       host.id = 'scc-panel-host';
-      host.attachShadow({ mode: 'open' });
       document.body.appendChild(host);
     }
-    return host.shadowRoot;
+    return host.shadowRoot || host.attachShadow({ mode: 'open' });
   }
 
   // Downloads the DOM as the content script sees it, to drop into fixtures/ when the parser misses a field.

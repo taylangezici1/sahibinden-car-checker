@@ -168,3 +168,9 @@ tbody tr.podium { background: rgba(245, 179, 1, 0.1); }
 tbody tr.podium:hover { background: rgba(245, 179, 1, 0.16); }
 .medal { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%;
          font-weight: 800; color: #3d2900; background: #f5b301; }
+
+/* Price moves since a listing was first saved, and the filter for drops. */
+td small.drop { color: var(--good); font-weight: 600; }
+td small.rise { color: var(--bad); font-weight: 600; }
+.filter { display: inline-flex; align-items: center; gap: 8px; margin: 2px 0 10px; font-weight: 600; cursor: pointer; }
+.filter input { width: 20px; height: 20px; accent-color: var(--brand); }

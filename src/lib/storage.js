@@ -16,6 +16,8 @@ SCC.storage = {
   },
 
   // Keeps `overrides` from earlier visits: a fresh parse never carries them.
+  // A listing read off a live page is live again, so an old `goneAt` is dropped
+  // unless the parse itself set one (a page that still shows the details).
   async upsert(listing) {
     const all = await SCC.storage.all();
     const prev = all[listing.id];
@@ -31,8 +33,20 @@ SCC.storage = {
       lastSeenAt: now,
       priceHistory: history,
     };
+    if (!listing.goneAt) delete all[listing.id].goneAt;
+    else if (prev?.goneAt) all[listing.id].goneAt = prev.goneAt; // first time it was seen gone
+
     await chrome.storage.local.set({ listings: all });
     return all;
+  },
+
+  // The listing's page says it is no longer up (sold or taken down). Keeps the data,
+  // which then stays out of the comparison. No-op for listings that were never saved.
+  async markGone(id) {
+    const all = await SCC.storage.all();
+    if (!all[id] || all[id].goneAt) return;
+    all[id] = { ...all[id], goneAt: new Date().toISOString() };
+    await chrome.storage.local.set({ listings: all });
   },
 
   // A value the user corrected by hand, e.g. setOverride(id, 'tramer', 12500).

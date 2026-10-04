@@ -1,5 +1,5 @@
 (() => {
-  const { tl, int, signed, percent, score } = SCC.format;
+  const { tl, int, signed, percent, score, ago } = SCC.format;
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
@@ -23,6 +23,16 @@
     (l.overrides?.tramer !== undefined ? '<small>elle girildi</small>' : '');
   const breakdownTitle = (r) =>
     [`Başlangıç ${group.config.scoring.baseScore}`, ...r.breakdown.map((b) => `${b.label}: ${signed(b.points, 1)}`)].join('\n');
+
+  // Under a price: how it moved since the listing was first saved.
+  function priceNote(l) {
+    const c = SCC.priceChange(l);
+    if (!c) return '';
+    const down = c.diff < 0;
+    return `<small class="${down ? 'drop' : 'rise'}" title="İlk kaydedildiğinde ${tl(c.from)} · değişiklik ${ago(c.at)}">${down ? '▼' : '▲'} ${tl(Math.abs(c.diff))}</small>`;
+  }
+  const dropped = (r) => SCC.priceChange(r.listing)?.diff < 0;
+  let onlyDrops = false;
 
   const VERDICT_WORDS = { cheap: ['▼', 'ucuz'], fair: ['●', 'Normal fiyat'], dear: ['▲', 'pahalı'] };
   function verdictChip(r) {
@@ -106,7 +116,7 @@
   // ---- Paging for both tables. The page size is this browser's preference; each
   // table keeps its own page, which goes back to 1 when another model is picked.
   const PAGE_SIZES = [10, 25, 50, 100];
-  const pages = { eligible: 1, excluded: 1 };
+  const pages = { eligible: 1, excluded: 1, gone: 1 };
   let pageSize = 25;
   try {
     const saved = Number(localStorage.getItem('pageSize'));
@@ -144,11 +154,15 @@
       <th>Boya</th><th class="num">Tramer</th><th class="num">Puan</th>
       <th class="num">Fiyat</th><th>Sonuç</th><th></th>
     </tr></thead>`;
-    const { rows, start, count } = pageOf('eligible', group.eligible);
+    const drops = group.eligible.filter(dropped);
+    $('drops-count').textContent = `(${drops.length})`;
+    const list = onlyDrops ? drops : group.eligible;
+    const { rows, count } = pageOf('eligible', list);
     const body = rows
-      .map((r, i) => {
+      .map((r) => {
         const l = r.listing;
-        const rank = start + i + 1;
+        // The place in the full ranking, also when only price drops are shown.
+        const rank = group.eligible.indexOf(r) + 1;
         // The order only means something once there is a price line.
         const podium = group.fit && rank <= 3;
         return `<tr data-anchor="e-${esc(l.id)}"${podium ? ' class="podium"' : ''}>
@@ -161,14 +175,15 @@
           <td class="text">${paintText(l.parts)}</td>
           <td class="num">${tramerText(l)}</td>
           <td class="num score" title="${esc(breakdownTitle(r))}">${score(r.score)}</td>
-          <td class="num">${tl(l.price)}</td>
+          <td class="num">${tl(l.price)}${priceNote(l)}</td>
           <td>${verdictChip(r)}</td>
           <td><button data-del="${esc(l.id)}">Sil</button></td>
         </tr>`;
       })
       .join('');
-    $('eligible').innerHTML = head + `<tbody>${body || '<tr><td colspan="12" class="empty">Henüz yok.</td></tr>'}</tbody>`;
-    renderPager('eligible', group.eligible.length, count);
+    const empty = onlyDrops ? 'Fiyatı düşen ilan yok.' : 'Henüz yok.';
+    $('eligible').innerHTML = head + `<tbody>${body || `<tr><td colspan="12" class="empty">${empty}</td></tr>`}</tbody>`;
+    renderPager('eligible', list.length, count);
   }
 
   function renderExcluded() {
@@ -192,6 +207,31 @@
     renderPager('excluded', group.excluded.length, count);
   }
 
+  // Sold or taken down: out of the comparison, kept for their last asking price.
+  function renderGone() {
+    $('gone-count').textContent = `(${group.gone.length})`;
+    const head = `<thead><tr><th>İlan</th><th class="num">Yıl</th><th>Paket / Model</th><th class="num">Kilometre</th>
+      <th class="num">Puan</th><th class="num">Son fiyat</th><th>Kalktığı tarih</th><th></th></tr></thead>`;
+    const { rows, count } = pageOf('gone', group.gone);
+    const body = rows
+      .map((r) => {
+        const l = r.listing;
+        return `<tr data-anchor="g-${esc(l.id)}">
+          <td class="title"><a href="${esc(l.url)}" target="_blank">${esc(l.title || l.id)}</a></td>
+          <td class="num">${l.year ?? '–'}</td>
+          <td class="text">${esc(r.trim || l.model || '–')}</td>
+          <td class="num">${int(l.km)}</td>
+          <td class="num">${score(r.score)}</td>
+          <td class="num">${tl(l.price)}${priceNote(l)}</td>
+          <td>${new Date(l.goneAt).toLocaleDateString('tr-TR')}<small>${ago(l.goneAt)}</small></td>
+          <td><button data-del="${esc(l.id)}">Sil</button></td>
+        </tr>`;
+      })
+      .join('');
+    $('gone').innerHTML = head + `<tbody>${body || '<tr><td colspan="8" class="empty">Yok.</td></tr>'}</tbody>`;
+    renderPager('gone', group.gone.length, count);
+  }
+
   function renderGroup() {
     group = groups.find((g) => g.key === selectedKey()) || groups[0] || SCC.analyzeGroup('', []);
     renderPicker();
@@ -200,6 +240,7 @@
     renderChart();
     renderEligible();
     renderExcluded();
+    renderGone();
   }
 
   // The tables are rebuilt from scratch, so the browser can't keep the reader's
@@ -291,7 +332,8 @@
     if (id && confirm('Bu ilan listeden silinsin mi?')) await SCC.storage.remove(id);
   });
 
-  const renderTable = { eligible: renderEligible, excluded: renderExcluded };
+  const renderTable = { eligible: renderEligible, excluded: renderExcluded, gone: renderGone };
+  const firstPages = () => Object.keys(pages).forEach((k) => (pages[k] = 1));
   for (const which of Object.keys(pages)) {
     const pager = $(`${which}-pager`);
     pager.addEventListener('click', (e) => {
@@ -309,16 +351,20 @@
       try {
         localStorage.setItem('pageSize', String(pageSize));
       } catch {}
-      pages.eligible = pages.excluded = 1;
-      renderEligible();
-      renderExcluded();
+      firstPages();
+      Object.values(renderTable).forEach((render) => render());
     });
   }
+  $('only-drops').onchange = (e) => {
+    onlyDrops = e.target.checked;
+    pages.eligible = 1;
+    renderEligible();
+  };
   $('group').onchange = (e) => {
     location.hash = encodeURIComponent(e.target.value);
   };
   addEventListener('hashchange', () => {
-    pages.eligible = pages.excluded = 1;
+    firstPages();
     renderGroup();
   });
   $('export-csv').onclick = exportCsv;

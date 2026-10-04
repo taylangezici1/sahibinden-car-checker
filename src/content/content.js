@@ -7,6 +7,11 @@
     const listing = SCC.parseListing(document, location.href);
     if (!listing) {
       const problem = SCC.pageProblem(document);
+      // A saved listing that's no longer up: keep it, but out of the comparison.
+      if (problem === 'gone') {
+        const id = location.pathname.match(/(\d{6,})(?:\/detay)?\/?$/)?.[1];
+        if (id) await SCC.storage.markGone(id);
+      }
       done(problem || 'unreadable');
       if (problem) return; // sahibinden's own page says what's wrong
       const labels = Object.keys(SCC.readInfoList(document));
@@ -36,8 +41,11 @@
       if (row) SCC.renderPanel(row, group);
     };
 
+    // Some taken-down listings still show their details under a banner.
+    const gone = /bu ilan (artık )?yayında değil|bu ilan yayından kaldırıl/i.test(document.body.innerText);
+    if (gone) listing.goneAt = new Date().toISOString();
     await SCC.storage.upsert(listing);
-    done('ok');
+    done(gone ? 'gone' : 'ok');
     await render();
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area === 'local' && (changes.listings || changes.settings)) render();

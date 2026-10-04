@@ -19,6 +19,16 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
 
   // Values the user typed in on the panel (listing.overrides, e.g. tramer) win over
   // what was read from the page. `parsed` keeps the page's values for display.
+  // How the asking price moved since the listing was first saved (priceHistory gets a
+  // point each time a visit or save sees a new price). null when it hasn't moved.
+  SCC.priceChange = function (listing) {
+    const history = listing.priceHistory || [];
+    const from = history[0]?.price;
+    const to = history.at(-1)?.price;
+    if (history.length < 2 || !from || !to || from === to) return null;
+    return { from, to, diff: to - from, pct: (to - from) / from, at: history.at(-1).at };
+  };
+
   SCC.withOverrides = (listing) =>
     listing.overrides && Object.keys(listing.overrides).length
       ? { ...listing, ...listing.overrides, parsed: listing }

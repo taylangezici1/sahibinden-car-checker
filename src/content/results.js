@@ -117,7 +117,8 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
       else if (s?.error) look = ['error', '✗ Kaydedilemedi, tekrar deneyin', s.error];
       else if (row) {
         const verdict = row.eligible ? VERDICT[row.verdict] : 'Uygun değil';
-        look = ['saved', `✓ Kayıtlı · ${score(row.score)} puan${verdict ? ` · ${verdict}` : ''}`, 'Bilgileri yenilemek için tıklayın'];
+        const drop = SCC.priceChange(row.listing)?.diff < 0 ? ' · ▼ Fiyatı düştü' : '';
+        look = ['saved', `✓ Kayıtlı · ${score(row.score)} puan${verdict ? ` · ${verdict}` : ''}${drop}`, 'Bilgileri yenilemek için tıklayın'];
       }
       button.className = look[0];
       button.textContent = look[1];

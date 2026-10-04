@@ -16,6 +16,7 @@ Arayüz, teknik bilgisi olmayan biri de rahatça kullanabilsin diye sade Türkç
   olduğunu söyler.
 - Arama sonuçlarındaki ilanları **tek tıkla kaydeder**: ilan arka planda açılıp kapanır.
 - Kaydedilen bütün ilanları model model karşılaştıran bir sayfa sunar.
+- Fiyatı düşen ilanları gösterir; yayından kalkan (satılan) ilanları ayırır.
 
 ## Ekran görüntüleri
 
@@ -70,6 +71,17 @@ için o modelden en az 5 uygun ilan gerekir.
 "hatasız" ya da "boyasız" gibi ifadelerden 0 kabul edilir. Panelden elle de girilebilir.
 
 **Kategoriler.** Otomobil ile Arazi, SUV & Pickup kategorilerindeki ilanlar desteklenir.
+
+**Fiyat değişimi.** Bir ilan her açıldığında ya da kaydedildiğinde fiyatı yeniden okunur; fiyat
+değiştiyse geçmişe eklenir. Panel "▼ Fiyatı düştü: 1.195.000 → 1.135.000 TL" gibi bir satır gösterir,
+karşılaştırma sayfasında fiyatın altında düşüş tutarı yazar ve **Sadece fiyatı düşen ilanlar**
+seçeneğiyle yalnız onlar listelenebilir. Fiyat kendiliğinden güncellenmez: ilanın tekrar açılması ya
+da Kaydet'e tekrar basılması gerekir.
+
+**Yayından kalkan ilanlar.** Kayıtlı bir ilan açıldığında sayfa ilanın yayında olmadığını söylüyorsa
+ilan "yayından kalktı" diye işaretlenir. Bu ilanlar fiyat çizgisine, sıralamaya ve sayılara katılmaz;
+karşılaştırma sayfasındaki ayrı bölümde son fiyatları ve kalktıkları tarihle durur. İlan tekrar
+yayında görülürse işaret kalkar.
 
 **Veriler.** Her şey tarayıcının kendi deposunda (`chrome.storage.local`) saklanır, hiçbir yere gönderilmez.
 
