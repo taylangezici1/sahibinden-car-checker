@@ -1,3 +1,3 @@
-Saved sahibinden listing pages (the panel's "HTML" button, or Ctrl+S → "Webpage, HTML only") used to check and fix the parser.
+Parser'ı denemek ve düzeltmek için kaydedilen sahibinden ilan sayfaları (paneldeki "Sayfayı kaydet" düğmesi ya da Ctrl+S → "Web Sayfası, Yalnızca HTML").
 
-The .html files are kept out of git: pages saved while logged in carry the account name, and listings carry sellers' phone numbers.
+.html dosyaları git'e girmez: oturum açıkken kaydedilen sayfalarda hesap adı, ilanlarda satıcı telefonları bulunur.
