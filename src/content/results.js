@@ -54,7 +54,7 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
   const state = new Map(); // id -> 'saving' | { error }; saved ones are read from storage
 
   async function save(id, url) {
-    if (state.get(id) === 'saving') return;
+    if (SCC.staleNotice() || state.get(id) === 'saving') return;
     state.set(id, 'saving');
     paint();
     let status;
@@ -163,11 +163,14 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
       minimized = !minimized;
       paint();
     };
-    root.querySelector('[data-act="dash"]').onclick = () =>
+    root.querySelector('[data-act="dash"]').onclick = () => {
+      if (SCC.staleNotice()) return;
       chrome.runtime.sendMessage({ type: 'openDashboard', group: mainGroup(rows) });
+    };
   }
 
   async function paint() {
+    if (SCC.extensionGone()) return; // storage is out of reach; buttons show the reload note
     await SCC.storage.loadSettings();
     const rows = new Map(SCC.analyze(await SCC.storage.list()).flatMap((g) => g.rows.map((r) => [r.listing.id, r])));
     paintButtons(rows);

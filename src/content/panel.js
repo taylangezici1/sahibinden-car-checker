@@ -218,12 +218,14 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
     };
     // The storage change re-renders the panel with the new score.
     const save = (value) => {
+      if (SCC.staleNotice()) return;
       editing = false;
       pending = null;
       return SCC.storage.setOverride(listing.id, 'tramer', value);
     };
 
     editButton.onclick = () => {
+      if (SCC.staleNotice()) return;
       editing = true;
       form.hidden = false;
       editButton.hidden = true;
@@ -363,7 +365,9 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
     };
     root.querySelector('[data-act="html"]').onclick = SCC.savePageHtml;
     wireTramer(root, row.listing);
-    root.querySelector('[data-act="dash"]').onclick = () =>
+    root.querySelector('[data-act="dash"]').onclick = () => {
+      if (SCC.staleNotice()) return;
       chrome.runtime.sendMessage({ type: 'openDashboard', group: group.key });
+    };
   };
 })();
