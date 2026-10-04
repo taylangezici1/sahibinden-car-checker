@@ -109,7 +109,9 @@ th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--gri
 th { color: var(--ink-2); font-weight: 600; font-size: 14px; }
 tbody tr:hover { background: var(--soft); }
 td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
-td.title { white-space: normal; min-width: 240px; max-width: 380px; }
+td.title { white-space: normal; min-width: 200px; max-width: 360px; }
+/* Words, not numbers: these may wrap so one long model name or paint list can't widen the table. */
+td.text { white-space: normal; min-width: 80px; max-width: 180px; }
 td.reasons { white-space: normal; }
 td.score { font-weight: 700; cursor: help; text-decoration: underline dotted var(--axis); text-underline-offset: 3px; }
 td button { padding: 4px 12px; font-size: 14px; }
@@ -151,3 +153,11 @@ td small { display: block; color: var(--ink-2); font-size: 13px; }
 .setting input:focus { outline: none; border-color: var(--brand); }
 .setting .preset { color: var(--ink-2); font-size: 14px; }
 .status { color: var(--good); font-weight: 600; align-self: center; }
+
+.pager { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-top: 14px; font-size: 16px; }
+.pager[hidden] { display: none; }
+.pager button { min-height: 42px; padding: 8px 16px; font-weight: 600; }
+.pager button:disabled { opacity: 0.4; cursor: default; border-color: var(--border); }
+.pager .total { color: var(--ink-2); }
+.pager .size { margin-left: auto; display: flex; align-items: center; gap: 8px; color: var(--ink-2); }
+.pager select { min-height: 42px; font-weight: 600; }

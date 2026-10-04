@@ -103,23 +103,59 @@
     SCC.drawScatter($('chart'), group.eligible, group.fit, { onHover: showTooltip, onOpen: open });
   }
 
+  // ---- Paging for both tables. The page size is this browser's preference; each
+  // table keeps its own page, which goes back to 1 when another model is picked.
+  const PAGE_SIZES = [10, 25, 50, 100];
+  const pages = { eligible: 1, excluded: 1 };
+  let pageSize = 25;
+  try {
+    const saved = Number(localStorage.getItem('pageSize'));
+    if (PAGE_SIZES.includes(saved)) pageSize = saved;
+  } catch {}
+
+  // The rows of `list` on `which` table's current page (clamped, e.g. after a delete).
+  function pageOf(which, list) {
+    const count = Math.max(1, Math.ceil(list.length / pageSize));
+    pages[which] = Math.min(Math.max(1, pages[which]), count);
+    const start = (pages[which] - 1) * pageSize;
+    return { rows: list.slice(start, start + pageSize), start, count };
+  }
+
+  function renderPager(which, total, count) {
+    const el = $(`${which}-pager`);
+    el.hidden = total <= PAGE_SIZES[0];
+    if (el.hidden) return;
+    const page = pages[which];
+    const nav =
+      count > 1
+        ? `<button data-page="-1" ${page === 1 ? 'disabled' : ''}>‹ Önceki</button>
+           <span>Sayfa <b>${page}</b> / ${count}</span>
+           <button data-page="1" ${page === count ? 'disabled' : ''}>Sonraki ›</button>`
+        : '';
+    el.innerHTML = `${nav}<span class="total">${int(total)} ilan</span>
+      <label class="size">Sayfa başına
+        <select data-page-size>${PAGE_SIZES.map((n) => `<option ${n === pageSize ? 'selected' : ''}>${n}</option>`).join('')}</select>
+      </label>`;
+  }
+
   function renderEligible() {
     const head = `<thead><tr>
       <th class="num">Sıra</th><th>İlan</th><th class="num">Yıl</th><th>Paket</th><th>Vites</th><th class="num">Kilometre</th>
       <th>Boya</th><th class="num">Tramer</th><th class="num">Puan</th>
       <th class="num">Fiyat</th><th>Sonuç</th><th></th>
     </tr></thead>`;
-    const body = group.eligible
+    const { rows, start, count } = pageOf('eligible', group.eligible);
+    const body = rows
       .map((r, i) => {
         const l = r.listing;
         return `<tr data-anchor="e-${esc(l.id)}">
-          <td class="num">${i + 1}</td>
+          <td class="num">${start + i + 1}</td>
           <td class="title"><a href="${esc(l.url)}" target="_blank">${esc(l.title || l.id)}</a></td>
           <td class="num">${l.year ?? '–'}</td>
-          <td>${esc(r.trim || l.model || '–')}</td>
-          <td>${esc(l.gear || '–')}</td>
+          <td class="text">${esc(r.trim || l.model || '–')}</td>
+          <td class="text">${esc(l.gear || '–')}</td>
           <td class="num">${int(l.km)}</td>
-          <td>${paintText(l.parts)}</td>
+          <td class="text">${paintText(l.parts)}</td>
           <td class="num">${tramerText(l)}</td>
           <td class="num score" title="${esc(breakdownTitle(r))}">${score(r.score)}</td>
           <td class="num">${tl(l.price)}</td>
@@ -129,18 +165,20 @@
       })
       .join('');
     $('eligible').innerHTML = head + `<tbody>${body || '<tr><td colspan="12" class="empty">Henüz yok.</td></tr>'}</tbody>`;
+    renderPager('eligible', group.eligible.length, count);
   }
 
   function renderExcluded() {
     $('excluded-count').textContent = `(${group.excluded.length})`;
     const head = `<thead><tr><th>İlan</th><th class="num">Yıl</th><th>Model</th><th class="num">Fiyat</th><th>Neden uymuyor</th><th></th></tr></thead>`;
-    const body = group.excluded
+    const { rows, count } = pageOf('excluded', group.excluded);
+    const body = rows
       .map((r) => {
         const l = r.listing;
         return `<tr data-anchor="x-${esc(l.id)}">
           <td class="title"><a href="${esc(l.url)}" target="_blank">${esc(l.title || l.id)}</a></td>
           <td class="num">${l.year ?? '–'}</td>
-          <td>${esc(l.model || '–')}</td>
+          <td class="text">${esc(l.model || '–')}</td>
           <td class="num">${tl(l.price)}</td>
           <td class="reasons">${r.reasons.map(esc).join('<br>')}</td>
           <td><button data-del="${esc(l.id)}">Sil</button></td>
@@ -148,6 +186,7 @@
       })
       .join('');
     $('excluded').innerHTML = head + `<tbody>${body || '<tr><td colspan="6" class="empty">Yok.</td></tr>'}</tbody>`;
+    renderPager('excluded', group.excluded.length, count);
   }
 
   function renderGroup() {
@@ -248,10 +287,37 @@
     const id = e.target.closest('[data-del]')?.dataset.del;
     if (id && confirm('Bu ilan listeden silinsin mi?')) await SCC.storage.remove(id);
   });
+
+  const renderTable = { eligible: renderEligible, excluded: renderExcluded };
+  for (const which of Object.keys(pages)) {
+    const pager = $(`${which}-pager`);
+    pager.addEventListener('click', (e) => {
+      const step = Number(e.target.closest('[data-page]')?.dataset.page);
+      if (!step) return;
+      pages[which] += step;
+      renderTable[which]();
+      // The new page starts at the top of the table: bring that into view.
+      const section = pager.closest('section');
+      if (section.getBoundingClientRect().top < 0) section.scrollIntoView({ block: 'start' });
+    });
+    pager.addEventListener('change', (e) => {
+      if (!e.target.matches('[data-page-size]')) return;
+      pageSize = Number(e.target.value);
+      try {
+        localStorage.setItem('pageSize', String(pageSize));
+      } catch {}
+      pages.eligible = pages.excluded = 1;
+      renderEligible();
+      renderExcluded();
+    });
+  }
   $('group').onchange = (e) => {
     location.hash = encodeURIComponent(e.target.value);
   };
-  addEventListener('hashchange', renderGroup);
+  addEventListener('hashchange', () => {
+    pages.eligible = pages.excluded = 1;
+    renderGroup();
+  });
   $('export-csv').onclick = exportCsv;
   $('export-json').onclick = exportJson;
   $('import-json').onchange = (e) => {
