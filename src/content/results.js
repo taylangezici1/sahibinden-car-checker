@@ -186,6 +186,19 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
     if (links.size && location.pathname !== '/') paintBox(rows);
   }
 
+  // ---- A taken-down listing: sahibinden sends its address on to this search page with
+  // "Görüntülemek istediğiniz ilan yayında değildir..." on top. background.js saw which
+  // listing the tab was sent away from.
+
+  async function markRedirectedListing() {
+    if (SCC.extensionGone() || !SCC.saysListingGone(document)) return;
+    const id = await chrome.runtime.sendMessage({ type: 'redirectedFrom' }).catch(() => null);
+    if (id) await SCC.storage.markGone(id);
+    // A tab "Kaydet" opened (saveViaTab) closes only after the mark is saved.
+    chrome.runtime.sendMessage({ type: 'listingDone', status: 'gone' }).catch(() => {});
+  }
+
+  markRedirectedListing().catch((err) => console.error('[SCC]', err));
   if (addButtons()) paint();
   // Results that arrive later (filters, paging without a reload) get buttons too.
   let timer;

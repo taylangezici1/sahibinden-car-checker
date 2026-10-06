@@ -41,7 +41,8 @@
       if (row) SCC.renderPanel(row, group);
     };
 
-    const gone = SCC.hasGoneBanner(document);
+    // Some taken-down listings still show their details under the notice.
+    const gone = SCC.saysListingGone(document);
     if (gone) listing.goneAt = new Date().toISOString();
     await SCC.storage.upsert(listing);
     done(gone ? 'gone' : 'ok');

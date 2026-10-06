@@ -217,8 +217,16 @@ SCC.CAR_CATEGORIES = ['otomobil', 'arazi-suv-pickup'];
   // "i", so /ilan/i misses "İlan bulunamadı" and anything shown in capitals.
   const pageText = (doc) => `${doc.title} ${doc.body?.innerText ?? doc.body?.textContent ?? ''}`.toLocaleLowerCase('tr-TR');
 
-  // Some taken-down listings still show their details under a banner.
-  SCC.hasGoneBanner = (doc = document) => /bu ilan (artık )?yayında değil|bu ilan yayından kaldırıl/.test(pageText(doc));
+  // sahibinden's wording for a listing that is no longer up, e.g. "Görüntülemek
+  // istediğiniz ilan yayında değildir, aynı kategorideki benzer ilanlara aşağıdan
+  // ulaşabilirsiniz.", "Bu ilan yayından kaldırılmıştır", "İlan bulunamadı". Tied to
+  // "ilan" so that an ad's own "DPF kaldırılmış" does not count.
+  const GONE = /ilan\S*\s+(artık\s+)?yayında\s+değil|ilan\S*(\s+\S+){0,3}\s+kaldırılmış|ilan\s+bulunamadı/;
+
+  // Whether the page says the listing asked for is no longer up: on a listing page that
+  // still shows its details under the notice, or on the search page sahibinden sends
+  // a taken-down listing's address on to.
+  SCC.saysListingGone = (doc = document) => GONE.test(pageText(doc));
 
   // Every sahibinden page carries a reCAPTCHA and a Turnstile box in its hidden login
   // popup, so only one that is on show means a check page.
@@ -229,7 +237,7 @@ SCC.CAR_CATEGORIES = ['otomobil', 'arazi-suv-pickup'];
   // it), or null when it's something else.
   SCC.pageProblem = function (doc = document) {
     const text = pageText(doc);
-    if (/yayında değil|yayından kaldırıl|ilan bulunamadı/.test(text)) return 'gone';
+    if (GONE.test(text)) return 'gone';
     const captcha = [...doc.querySelectorAll(CAPTCHA)].some((el) => el.checkVisibility?.() ?? false);
     if (captcha || /olağan ?dışı|robot olmadığ|güvenlik doğrulama/.test(text)) return 'botcheck';
     return null;

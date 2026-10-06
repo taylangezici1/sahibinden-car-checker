@@ -91,7 +91,9 @@ seçeneğiyle yalnız onlar listelenebilir. Fiyat kendiliğinden güncellenmez: 
 da Kaydet'e tekrar basılması gerekir.
 
 **Yayından kalkan ilanlar.** Kayıtlı bir ilan açıldığında sayfa ilanın yayında olmadığını söylüyorsa
-ilan "yayından kalktı" diye işaretlenir. Bu ilanlar fiyat çizgisine, sıralamaya ve sayılara katılmaz;
+ilan "yayından kalktı" diye işaretlenir. sahibinden kalkan ilanı çoğu zaman modelin arama sayfasına
+yönlendirir ("Görüntülemek istediğiniz ilan yayında değildir..."); eklenti sekmenin hangi ilandan
+yönlendirildiğini görür (`webNavigation` izni, yalnızca sahibinden adreslerinde) ve o ilanı işaretler. Bu ilanlar fiyat çizgisine, sıralamaya ve sayılara katılmaz;
 karşılaştırma sayfasındaki ayrı bölümde son fiyatları ve kalktıkları tarihle durur. İlan tekrar
 yayında görülürse işaret kalkar.
 
@@ -163,7 +165,7 @@ Dikkat edilecekler:
 - `src/content/parser.js`: ilan sayfasını okur (bilgi tablosu, fiyat, boya/değişen şeması, tramer). Desteklenen kategoriler `SCC.CAR_CATEGORIES`.
 - `src/content/panel.js`, `content.js`: ilan sayfasındaki panel.
 - `src/content/results.js`: arama sonuçlarındaki Kaydet düğmeleri ve sağ alttaki kutu.
-- `src/background.js`: ilanı arka planda sekmede açıp kapatan kısım (`saveViaTab`) ve karşılaştırma sayfasını açma.
+- `src/background.js`: ilanı arka planda sekmede açıp kapatan kısım (`saveViaTab`), kalkan ilanın arama sayfasına yönlendirildiğini fark etme ve karşılaştırma sayfasını açma.
 - `dashboard/`: karşılaştırma sayfası (grafik, tablolar, `settings.js` ile puan ayarları formu).
 - `popup/`: araç çubuğu simgesine tıklayınca açılan küçük pencere.
 - `icons/logo.svg`: logo. `icon-*.png` dosyaları bundan üretildi; sahibinden sayfalarındaki arayüz `src/lib/logo.js` içindeki aynı çizimi kullanır.

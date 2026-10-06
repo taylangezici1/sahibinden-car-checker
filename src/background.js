@@ -3,8 +3,32 @@
 const pending = new Map();
 const TAB_TIMEOUT_MS = 30000;
 const LISTING_URL = /^https:\/\/www\.sahibinden\.com\/ilan\//;
+const listingId = (url) => (LISTING_URL.test(url) ? url.match(/(\d{6,})(?:\/detay)?\/?(?:[?#].*)?$/)?.[1] : null);
+
+// sahibinden sends a taken-down listing's address on to its model's search page, with
+// "Görüntülemek istediğiniz ilan yayında değildir..." on top. content.js never runs
+// there, so the search page (results.js) asks here which listing its tab came from.
+const openingListing = new Map(); // tabId -> id of the listing the tab is opening or showing
+const redirectedFrom = new Map(); // tabId -> id of the listing it was sent away from
+const SAHIBINDEN = { url: [{ hostEquals: 'www.sahibinden.com' }] };
+
+chrome.webNavigation.onBeforeNavigate.addListener(({ tabId, frameId, url }) => {
+  if (frameId === 0 && listingId(url)) openingListing.set(tabId, listingId(url));
+}, SAHIBINDEN);
+
+// A server redirect never shows the listing; a client one shows it for a moment first.
+chrome.webNavigation.onCommitted.addListener(({ tabId, frameId, url, transitionQualifiers }) => {
+  if (frameId !== 0) return;
+  const from = openingListing.get(tabId);
+  const redirect = transitionQualifiers.some((q) => q === 'server_redirect' || q === 'client_redirect');
+  if (from && redirect && !listingId(url)) redirectedFrom.set(tabId, from);
+  else redirectedFrom.delete(tabId);
+  if (listingId(url)) openingListing.set(tabId, listingId(url));
+  else openingListing.delete(tabId);
+}, SAHIBINDEN);
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg?.type === 'redirectedFrom') sendResponse(redirectedFrom.get(sender.tab?.id) ?? null);
   if (msg?.type === 'openDashboard') {
     const hash = msg.group ? `#${encodeURIComponent(msg.group)}` : '';
     chrome.tabs.create({ url: chrome.runtime.getURL(`dashboard/dashboard.html${hash}`) });
@@ -16,7 +40,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg?.type === 'listingDone' && sender.tab) pending.get(sender.tab.id)?.(msg.status);
 });
 
-chrome.tabs.onRemoved.addListener((tabId) => pending.get(tabId)?.('closed'));
+chrome.tabs.onRemoved.addListener((tabId) => {
+  pending.get(tabId)?.('closed');
+  openingListing.delete(tabId);
+  redirectedFrom.delete(tabId);
+});
 
 // Saves a listing the way a person would: open it in a background tab next to the
 // results page, let content.js read and save it, close the tab. sahibinden banned
