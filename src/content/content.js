@@ -41,8 +41,7 @@
       if (row) SCC.renderPanel(row, group);
     };
 
-    // Some taken-down listings still show their details under a banner.
-    const gone = /bu ilan (artık )?yayında değil|bu ilan yayından kaldırıl/i.test(document.body.innerText);
+    const gone = SCC.hasGoneBanner(document);
     if (gone) listing.goneAt = new Date().toISOString();
     await SCC.storage.upsert(listing);
     done(gone ? 'gone' : 'ok');

@@ -213,14 +213,25 @@ SCC.CAR_CATEGORIES = ['otomobil', 'arazi-suv-pickup'];
     };
   };
 
-  // Why a page that should be a listing isn't one: 'botcheck' (captcha / unusual
-  // traffic page: stop saving and let the person solve it), 'gone' (listing taken
-  // down), or null when it's something else.
+  // Page text is lower-cased the Turkish way before matching: /i does not take "İ" for
+  // "i", so /ilan/i misses "İlan bulunamadı" and anything shown in capitals.
+  const pageText = (doc) => `${doc.title} ${doc.body?.innerText ?? doc.body?.textContent ?? ''}`.toLocaleLowerCase('tr-TR');
+
+  // Some taken-down listings still show their details under a banner.
+  SCC.hasGoneBanner = (doc = document) => /bu ilan (artık )?yayında değil|bu ilan yayından kaldırıl/.test(pageText(doc));
+
+  // Every sahibinden page carries a reCAPTCHA and a Turnstile box in its hidden login
+  // popup, so only one that is on show means a check page.
+  const CAPTCHA = '[id*="captcha" i], [class*="captcha" i], [id*="turnstile" i], [class*="turnstile" i], iframe[src*="challenges.cloudflare.com"]';
+
+  // Why a page that should be a listing isn't one: 'gone' (listing taken down),
+  // 'botcheck' (captcha / unusual traffic page: stop saving and let the person solve
+  // it), or null when it's something else.
   SCC.pageProblem = function (doc = document) {
-    const text = `${doc.title} ${doc.body?.innerText ?? doc.body?.textContent ?? ''}`;
-    const html = doc.documentElement?.innerHTML ?? '';
-    if (/captcha|turnstile/i.test(html) || /olağan ?dışı|robot olmadığ|güvenlik doğrulama/i.test(text)) return 'botcheck';
-    if (/yayında değil|yayından kaldırıl|ilan bulunamadı/i.test(text)) return 'gone';
+    const text = pageText(doc);
+    if (/yayında değil|yayından kaldırıl|ilan bulunamadı/.test(text)) return 'gone';
+    const captcha = [...doc.querySelectorAll(CAPTCHA)].some((el) => el.checkVisibility?.() ?? false);
+    if (captcha || /olağan ?dışı|robot olmadığ|güvenlik doğrulama/.test(text)) return 'botcheck';
     return null;
   };
 })();
