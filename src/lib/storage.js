@@ -67,6 +67,14 @@ SCC.storage = {
     await chrome.storage.local.set({ listings: all });
   },
 
+  // Every listing of one "Marka Seri" (taken-down ones too), or all listings when key
+  // is null. Settings stay.
+  async removeGroup(key = null) {
+    const all = await SCC.storage.all();
+    const kept = key == null ? {} : Object.fromEntries(Object.entries(all).filter(([, l]) => SCC.groupKey(l) !== key));
+    await chrome.storage.local.set({ listings: kept });
+  },
+
   async replaceAll(listings) {
     await chrome.storage.local.set({ listings });
   },

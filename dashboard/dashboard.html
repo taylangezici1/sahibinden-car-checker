@@ -106,12 +106,20 @@
 
     <section class="panel" data-anchor="backup">
       <details>
-        <summary><h2>Yedekleme</h2></summary>
+        <summary><h2>Yedekleme ve silme</h2></summary>
         <p class="sub">Kaydedilen ilanları dosyaya alabilir, başka bir bilgisayara taşıyabilirsiniz.</p>
         <div class="actions">
           <button id="export-csv">Bu modeli Excel'e aktar (CSV)</button>
           <button id="export-json">Tüm ilanları yedekle</button>
           <label class="btn">Yedekten geri yükle<input type="file" id="import-json" accept=".json,application/json" hidden /></label>
+        </div>
+        <p class="sub danger-note">
+          Silmeden önce bütün ilanların yedeği bilgisayarınıza kendiliğinden indirilir; yanlışlıkla silerseniz
+          "Yedekten geri yükle" ile geri getirebilirsiniz. Puan ve model ayarları silinmez.
+        </p>
+        <div class="actions">
+          <button id="delete-model" class="danger"></button>
+          <button id="delete-all" class="danger"></button>
         </div>
       </details>
     </section>

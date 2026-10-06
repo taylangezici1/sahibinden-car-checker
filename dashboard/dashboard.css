@@ -186,3 +186,9 @@ td small.rise { color: var(--bad); font-weight: 600; }
 }
 .variants input[type="number"]:focus, .model-form .year input:focus { outline: none; border-color: var(--brand); }
 .variants small { display: inline; margin-left: 6px; color: var(--ink-2); }
+
+/* Deleting listings. */
+.danger-note { margin-top: 16px; }
+button.danger { color: var(--bad); border-color: var(--bad-line); }
+button.danger:hover:not(:disabled) { background: var(--bad-bg); border-color: var(--bad); }
+button.danger:disabled { opacity: 0.45; cursor: default; }

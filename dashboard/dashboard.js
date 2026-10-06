@@ -242,6 +242,7 @@
     renderExcluded();
     renderGone();
     renderModelSettings();
+    renderDeleteButtons();
   }
 
   function renderModelSettings() {
@@ -249,6 +250,26 @@
     if (!group.key) return;
     $('model-name').textContent = group.key;
     SCC.modelForm.show($('model-form'), $('model-status'), group);
+  }
+
+  // ---- Deleting: this model's listings or all of them, taken-down ones included.
+  const groupSize = (g) => g.rows.length + g.gone.length;
+
+  function renderDeleteButtons() {
+    const all = groups.reduce((n, g) => n + groupSize(g), 0);
+    $('delete-model').hidden = !group.key;
+    $('delete-model').textContent = `${group.key} ilanlarını sil (${int(groupSize(group))})`;
+    $('delete-all').textContent = `Bütün ilanları sil (${int(all)})`;
+    $('delete-model').disabled = !groupSize(group);
+    $('delete-all').disabled = !all;
+  }
+
+  async function deleteListings(key) {
+    const count = key ? groupSize(group) : groups.reduce((n, g) => n + groupSize(g), 0);
+    const what = key ? `${key} için kayıtlı ${int(count)} ilan` : `Bütün modellerde kayıtlı ${int(count)} ilan`;
+    if (!count || !confirm(`${what} silinecek (yayından kalkanlar dahil).\n\nSilmeden önce bütün ilanların yedeği bilgisayarınıza indirilecek. Devam edilsin mi?`)) return;
+    await exportJson(); // a way back if this was a mistake
+    await SCC.storage.removeGroup(key);
   }
 
   // The tables are rebuilt from scratch, so the browser can't keep the reader's
@@ -380,6 +401,8 @@
   });
   $('export-csv').onclick = exportCsv;
   $('export-json').onclick = exportJson;
+  $('delete-model').onclick = () => deleteListings(group.key);
+  $('delete-all').onclick = () => deleteListings(null);
   $('import-json').onchange = (e) => {
     if (e.target.files[0]) importJson(e.target.files[0]);
     e.target.value = '';

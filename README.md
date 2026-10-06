@@ -145,8 +145,11 @@ Dikkat edilecekler:
   ya da paneldeki mavi düğmeye basın.
 - **Ayarlar:** Karşılaştırma sayfasında **⚙ Ayarlar**. Önce seçili modelin ayarları (yıl, paketler),
   altında bütün modeller için puan ayarları açılır. Değişiklikler kendiliğinden kaydedilir.
-- **Yedekleme:** Karşılaştırma sayfasının altındaki **Yedekleme** bölümünden bütün ilanlar dosyaya
-  alınabilir ve başka bir bilgisayara yüklenebilir. Puan ayarları yedeğe dahil değildir.
+- **Yedekleme ve silme:** Karşılaştırma sayfasının altındaki **Yedekleme ve silme** bölümünden bütün
+  ilanlar dosyaya alınabilir ve başka bir bilgisayara yüklenebilir. Puan ayarları yedeğe dahil
+  değildir. Aynı bölümden seçili modelin ya da bütün modellerin ilanları silinebilir (yayından
+  kalkanlar dahil, ayarlar kalır). Silmeden önce bütün ilanların yedeği kendiliğinden indirilir;
+  yanlışlıkla silinirse **Yedekten geri yükle** ile geri getirilebilir.
 
 ## Geliştirme
 
