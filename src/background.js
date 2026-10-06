@@ -37,7 +37,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     saveViaTab(msg.url, sender.tab).then(sendResponse);
     return true; // answer comes later
   }
-  if (msg?.type === 'listingDone' && sender.tab) pending.get(sender.tab.id)?.(msg.status);
+  // Answers whether a "Kaydet" was waiting for this tab (it then closes the tab itself).
+  if (msg?.type === 'listingDone' && sender.tab) {
+    const settle = pending.get(sender.tab.id);
+    settle?.(msg.status);
+    sendResponse(Boolean(settle));
+  }
+  if (msg?.type === 'closeTab' && sender.tab) chrome.tabs.remove(sender.tab.id).catch(() => {});
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {

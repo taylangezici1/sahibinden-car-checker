@@ -93,7 +93,9 @@ da Kaydet'e tekrar basılması gerekir.
 **Yayından kalkan ilanlar.** Kayıtlı bir ilan açıldığında sayfa ilanın yayında olmadığını söylüyorsa
 ilan "yayından kalktı" diye işaretlenir. sahibinden kalkan ilanı çoğu zaman modelin arama sayfasına
 yönlendirir ("Görüntülemek istediğiniz ilan yayında değildir..."); eklenti sekmenin hangi ilandan
-yönlendirildiğini görür (`webNavigation` izni, yalnızca sahibinden adreslerinde) ve o ilanı işaretler. Bu ilanlar fiyat çizgisine, sıralamaya ve sayılara katılmaz;
+yönlendirildiğini görür (`webNavigation` izni, yalnızca sahibinden adreslerinde) ve o ilanı işaretler.
+Kayıtlı bir ilansa bunu söyleyen kısa bir not çıkar ve birkaç saniye sonra sekme kapanır (sekme başka
+bir sayfadan geldiyse o sayfaya dönülür); "Bu sayfada kal" ile kalınabilir. Bu ilanlar fiyat çizgisine, sıralamaya ve sayılara katılmaz;
 karşılaştırma sayfasındaki ayrı bölümde son fiyatları ve kalktıkları tarihle durur. İlan tekrar
 yayında görülürse işaret kalkar.
 

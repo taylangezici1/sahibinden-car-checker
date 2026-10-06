@@ -42,11 +42,14 @@ SCC.storage = {
 
   // The listing's page says it is no longer up (sold or taken down). Keeps the data,
   // which then stays out of the comparison. No-op for listings that were never saved.
+  // Returns whether the listing is saved.
   async markGone(id) {
     const all = await SCC.storage.all();
-    if (!all[id] || all[id].goneAt) return;
+    if (!all[id]) return false;
+    if (all[id].goneAt) return true;
     all[id] = { ...all[id], goneAt: new Date().toISOString() };
     await chrome.storage.local.set({ listings: all });
+    return true;
   },
 
   // A value the user corrected by hand, e.g. setOverride(id, 'tramer', 12500).
