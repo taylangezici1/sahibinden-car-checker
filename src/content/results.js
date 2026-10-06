@@ -24,6 +24,7 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
     }
     button:hover { background: #edf2f9; }
     .saved { color: #0b6b2e; background: #e8f5ec; border-color: #9bd3ad; }
+    .saved.top { color: #5c3b00; background: #fff1c7; border-color: #e9b42a; }
     .busy { color: #45443f; background: #f4f4f1; border-color: #d6d4cc; cursor: progress; }
     .error { color: #b42318; background: #fdeeec; border-color: #f1a9a0; }
   `;
@@ -106,7 +107,7 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
     return added;
   }
 
-  function paintButtons(rows) {
+  function paintButtons(rows, ranks) {
     for (const host of document.querySelectorAll('[data-scc-save]')) {
       const id = host.dataset.sccSave;
       const button = host.shadowRoot.querySelector('button');
@@ -118,7 +119,10 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
       else if (row) {
         const verdict = row.eligible ? VERDICT[row.verdict] : 'Uygun değil';
         const drop = SCC.priceChange(row.listing)?.diff < 0 ? ' · ▼ Fiyatı düştü' : '';
-        look = ['saved', `✓ Kayıtlı · ${score(row.score)} puan${verdict ? ` · ${verdict}` : ''}${drop}`, 'Bilgileri yenilemek için tıklayın'];
+        const [place, of] = ranks.get(id) || [];
+        const rank = place ? ` · ${place}. sıra / ${of}` : '';
+        // The top three stand out, as on the panel and the dashboard.
+        look = [place <= 3 ? 'saved top' : 'saved', `✓ Kayıtlı${rank} · ${score(row.score)} puan${verdict ? ` · ${verdict}` : ''}${drop}`, 'Bilgileri yenilemek için tıklayın'];
       }
       button.className = look[0];
       button.textContent = look[1];
@@ -173,8 +177,11 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
   async function paint() {
     if (SCC.extensionGone()) return; // storage is out of reach; buttons show the reload note
     await SCC.storage.loadSettings();
-    const rows = new Map(SCC.analyze(await SCC.storage.list()).flatMap((g) => g.rows.map((r) => [r.listing.id, r])));
-    paintButtons(rows);
+    const groups = SCC.analyze(await SCC.storage.list());
+    const rows = new Map(groups.flatMap((g) => g.rows.map((r) => [r.listing.id, r])));
+    // id -> [place, out of] in its model's "En iyi fırsatlar" table, once there is a price line.
+    const ranks = new Map(groups.filter((g) => g.fit).flatMap((g) => g.eligible.map((r, i) => [r.listing.id, [i + 1, g.eligible.length]])));
+    paintButtons(rows, ranks);
     // Not on the home page, whose showcase also links to cars.
     if (links.size && location.pathname !== '/') paintBox(rows);
   }
