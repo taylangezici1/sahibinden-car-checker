@@ -13,7 +13,7 @@
         const id = location.pathname.match(/(\d{6,})(?:\/detay)?\/?$/)?.[1];
         const saved = id ? await SCC.storage.markGone(id) : false;
         // Opened by hand (e.g. from the dashboard), not by "Kaydet": nothing left to see.
-        if (!(await done(problem)) && saved) SCC.leaveSoon();
+        if (!(await done(problem)) && saved) SCC.leave();
         return;
       }
       done(problem || 'unreadable');
@@ -50,7 +50,7 @@
     if (gone) listing.goneAt = new Date().toISOString();
     const saved = Boolean((await SCC.storage.all())[listing.id]);
     await SCC.storage.upsert(listing);
-    if (!(await done(gone ? 'gone' : 'ok')) && gone && saved) SCC.leaveSoon();
+    if (!(await done(gone ? 'gone' : 'ok')) && gone && saved) SCC.leave();
     await render();
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area === 'local' && (changes.listings || changes.settings)) render();

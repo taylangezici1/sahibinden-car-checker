@@ -272,6 +272,46 @@
     await SCC.storage.removeGroup(key);
   }
 
+  // ---- A listing opened from here turned out to be taken down: its tab closed on its
+  // own (src/content/leave.js), so this page says what happened.
+  const TOAST_MS = 10000;
+  let toastTimer;
+
+  // `change` is chrome.storage's { oldValue, newValue } of `listings`.
+  function toastGone({ oldValue = {}, newValue = {} }) {
+    const gone = Object.values(newValue).filter((l) => l.goneAt && oldValue[l.id] && !oldValue[l.id].goneAt);
+    if (!gone.length) return;
+    const toast = $('toast');
+    const one = gone.length === 1;
+    toast.innerHTML = `
+      <p>${one ? `<b>Bu ilan yayından kalkmış:</b> ${esc(gone[0].title || gone[0].id)}` : `<b>${gone.length} ilan yayından kalkmış.</b>`}<br>
+        "Yayından kalkan ilanlar" bölümüne ${one ? 'taşındı' : 'taşındılar'}.</p>
+      <div class="acts"><button data-act="show">Göster</button><button data-act="close">Kapat</button></div>`;
+    toast.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => (toast.hidden = true), TOAST_MS);
+    toast.querySelector('[data-act="show"]').onclick = () => {
+      toast.hidden = true;
+      showGone(gone[0]);
+    };
+    toast.querySelector('[data-act="close"]').onclick = () => (toast.hidden = true);
+  }
+
+  // Opens "Yayından kalkan ilanlar" on the listing's model and brings its row into view.
+  async function showGone(listing) {
+    const key = SCC.groupKey(listing);
+    if (group?.key !== key) {
+      const switched = new Promise((r) => addEventListener('hashchange', r, { once: true }));
+      location.hash = encodeURIComponent(key);
+      await switched;
+    }
+    const section = document.querySelector('section[data-anchor="gone"]');
+    section.querySelector('details').open = true;
+    const row = document.querySelector(`tr[data-anchor="g-${CSS.escape(listing.id)}"]`);
+    (row || section).scrollIntoView({ behavior: 'smooth', block: 'center' });
+    row?.classList.add('flash');
+  }
+
   // The tables are rebuilt from scratch, so the browser can't keep the reader's
   // place by itself. Note the first row (else section) at the top of the screen
   // and put it back at the same height after the redraw.
@@ -413,7 +453,9 @@
   $('model-reset').onclick = () => SCC.modelForm.reset($('model-form'), $('model-status'), group);
 
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === 'local' && (changes.listings || changes.settings)) render();
+    if (area !== 'local') return;
+    if (changes.listings) toastGone(changes.listings);
+    if (changes.listings || changes.settings) render();
   });
   let resizeTimer;
   addEventListener('resize', () => {

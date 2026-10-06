@@ -198,7 +198,7 @@ var SCC = globalThis.SCC || (globalThis.SCC = {});
     const saving = await chrome.runtime.sendMessage({ type: 'listingDone', status: 'gone' }).catch(() => false);
     // Someone opened a saved listing (e.g. from the dashboard): nothing left to see here.
     // An unsaved one stays, for its similar listings.
-    if (saved && !saving) SCC.leaveSoon();
+    if (saved && !saving) SCC.leave();
   }
 
   markRedirectedListing().catch((err) => console.error('[SCC]', err));

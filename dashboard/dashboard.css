@@ -192,3 +192,20 @@ td small.rise { color: var(--bad); font-weight: 600; }
 button.danger { color: var(--bad); border-color: var(--bad-line); }
 button.danger:hover:not(:disabled) { background: var(--bad-bg); border-color: var(--bad); }
 button.danger:disabled { opacity: 0.45; cursor: default; }
+
+/* "Bu ilan yayından kalkmış": a listing opened from here was taken down and its tab closed. */
+.toast {
+  position: fixed; right: 20px; bottom: 20px; z-index: 20; display: flex; align-items: flex-start; gap: 12px;
+  width: 400px; max-width: calc(100vw - 32px); padding: 14px 16px;
+  color: var(--ink); background: var(--surface); border: 2px solid var(--good-line); border-radius: 12px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22);
+}
+.toast[hidden] { display: none; }
+.toast p { flex: 1; margin: 0; }
+.toast .acts { display: flex; flex-direction: column; gap: 8px; }
+.toast .acts button { min-height: 40px; font-weight: 600; }
+@media (max-width: 640px) { .toast { right: 16px; bottom: 16px; } }
+
+/* The row "Göster" scrolled to. */
+@keyframes flash { from { background: var(--good-bg); } }
+tbody tr.flash { animation: flash 2.5s ease-out; }
