@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Oto Fiyat Rehberi",
-  "version": "0.4.5",
+  "version": "0.4.6",
   "description": "sahibinden.com'daki araba ilanlarına puan verir ve fiyatı aynı modeldeki diğer ilanlarla karşılaştırır.",
   "icons": {
     "16": "icons/icon-16.png",
@@ -34,6 +34,7 @@
         "src/lib/storage.js",
         "src/lib/logo.js",
         "src/content/stale.js",
+        "src/content/leave.js",
         "src/content/parser.js",
         "src/content/panel.js",
         "src/content/content.js"
@@ -55,6 +56,7 @@
         "src/lib/storage.js",
         "src/lib/logo.js",
         "src/content/stale.js",
+        "src/content/leave.js",
         "src/content/parser.js",
         "src/content/results.js"
       ],

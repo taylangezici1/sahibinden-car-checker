@@ -94,10 +94,12 @@ da Kaydet'e tekrar basılması gerekir.
 ilan "yayından kalktı" diye işaretlenir. sahibinden kalkan ilanı çoğu zaman modelin arama sayfasına
 yönlendirir ("Görüntülemek istediğiniz ilan yayında değildir..."); eklenti sekmenin hangi ilandan
 yönlendirildiğini görür (`webNavigation` izni, yalnızca sahibinden adreslerinde) ve o ilanı işaretler.
-Kayıtlı bir ilansa bunu söyleyen kısa bir not çıkar ve birkaç saniye sonra sekme kapanır (sekme başka
-bir sayfadan geldiyse o sayfaya dönülür); "Bu sayfada kal" ile kalınabilir. Bu ilanlar fiyat çizgisine, sıralamaya ve sayılara katılmaz;
-karşılaştırma sayfasındaki ayrı bölümde son fiyatları ve kalktıkları tarihle durur. İlan tekrar
-yayında görülürse işaret kalkar.
+Böylece karşılaştırma sayfasından bir ilanı açmak onu kontrol etmek de olur: ilan kalkmışsa bunu
+söyleyen kısa bir not çıkar, birkaç saniye sonra sekme kapanır (sekme başka bir sayfadan geldiyse o
+sayfaya dönülür) ve ilan karşılaştırma sayfasında kendiliğinden "Yayından kalkan ilanlar"a geçer.
+"Bu sayfada kal" ile sekmede kalınabilir; kayıtlı olmayan bir ilanın sekmesi kapanmaz. Bu ilanlar
+fiyat çizgisine, sıralamaya ve sayılara katılmaz; karşılaştırma sayfasındaki ayrı bölümde son
+fiyatları ve kalktıkları tarihle durur. İlan tekrar yayında görülürse işaret kalkar.
 
 **Veriler.** Her şey tarayıcının kendi deposunda (`chrome.storage.local`) saklanır, hiçbir yere gönderilmez.
 
@@ -166,6 +168,7 @@ Dikkat edilecekler:
 - `src/lib/storage.js`: ilanlar, elle girilen değerler ve kullanıcı ayarları.
 - `src/content/parser.js`: ilan sayfasını okur (bilgi tablosu, fiyat, boya/değişen şeması, tramer). Desteklenen kategoriler `SCC.CAR_CATEGORIES`.
 - `src/content/panel.js`, `content.js`: ilan sayfasındaki panel.
+- `src/content/leave.js`: kalkmış kayıtlı ilanın sekmesinde çıkan not ve sekmenin kapanması.
 - `src/content/results.js`: arama sonuçlarındaki Kaydet düğmeleri ve sağ alttaki kutu.
 - `src/background.js`: ilanı arka planda sekmede açıp kapatan kısım (`saveViaTab`), kalkan ilanın arama sayfasına yönlendirildiğini fark etme ve karşılaştırma sayfasını açma.
 - `dashboard/`: karşılaştırma sayfası (grafik, tablolar, `settings.js` ile puan ayarları formu).

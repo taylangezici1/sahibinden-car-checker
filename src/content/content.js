@@ -1,7 +1,8 @@
 (async () => {
   // When "Kaydet" on a results page opened this tab, the background script waits
   // for this to close it again (see saveViaTab in background.js). Otherwise it's ignored.
-  const done = (status) => chrome.runtime.sendMessage({ type: 'listingDone', status }).catch(() => {});
+  // Resolves to whether such a "Kaydet" was waiting.
+  const done = (status) => chrome.runtime.sendMessage({ type: 'listingDone', status }).catch(() => false);
 
   try {
     const listing = SCC.parseListing(document, location.href);
@@ -10,7 +11,10 @@
       // A saved listing that's no longer up: keep it, but out of the comparison.
       if (problem === 'gone') {
         const id = location.pathname.match(/(\d{6,})(?:\/detay)?\/?$/)?.[1];
-        if (id) await SCC.storage.markGone(id);
+        const saved = id ? await SCC.storage.markGone(id) : false;
+        // Opened by hand (e.g. from the dashboard), not by "Kaydet": nothing left to see.
+        if (!(await done(problem)) && saved) SCC.leaveSoon();
+        return;
       }
       done(problem || 'unreadable');
       if (problem) return; // sahibinden's own page says what's wrong
@@ -44,8 +48,9 @@
     // Some taken-down listings still show their details under the notice.
     const gone = SCC.saysListingGone(document);
     if (gone) listing.goneAt = new Date().toISOString();
+    const saved = Boolean((await SCC.storage.all())[listing.id]);
     await SCC.storage.upsert(listing);
-    done(gone ? 'gone' : 'ok');
+    if (!(await done(gone ? 'gone' : 'ok')) && gone && saved) SCC.leaveSoon();
     await render();
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area === 'local' && (changes.listings || changes.settings)) render();
