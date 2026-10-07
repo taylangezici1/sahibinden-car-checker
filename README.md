@@ -42,7 +42,8 @@ Sağ alttaki kutu sayfada kaç ilanın kayıtlı olduğunu gösterir ve karşıl
 ### Karşılaştırma sayfası
 
 Seçilen modeldeki ilanlar grafikte ve en iyi fırsattan başlayan bir tabloda gösterilir. Çizgi,
-puanına göre beklenen fiyattır; çizginin altındaki ilanlar ucuzdur.
+puanına göre beklenen fiyattır; çizginin altındaki ilanlar ucuzdur. Tablo yıl, paket, kilometre, puan
+ya da fiyata göre de sıralanabilir: sütun başlığına tıklamak yeter, ikinci tıklama sırayı tersine çevirir.
 
 <img src="docs/screenshots/dashboard.png" alt="Karşılaştırma sayfası: fiyat ve puan grafiği, en iyi fırsatlar tablosu">
 

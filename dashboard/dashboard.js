@@ -148,20 +148,55 @@
       </label>`;
   }
 
+  // ---- Sorting "En iyi fırsatlar" by a column. Sonuç is the analysis order (best deal
+  // first); the others start the way a buyer reads them (newest, least km, best score,
+  // cheapest) and turn around on a second click. Ties keep the Sonuç order, and rows
+  // without the value go last either way.
+  const SORTS = {
+    result: { label: 'Sonuç', value: (r) => r.diffPct, text: ['En ucuzdan en pahalıya', 'En pahalıdan en ucuza'] },
+    year: { label: 'Yıl', value: (r) => r.listing.year, desc: true, text: ['Yıla göre, eskiden yeniye', 'Yıla göre, yeniden eskiye'] },
+    trim: { label: 'Paket', value: (r) => r.trim || r.listing.model || null, words: true, text: ["Pakete göre, A'dan Z'ye", "Pakete göre, Z'den A'ya"] },
+    km: { label: 'Kilometre', value: (r) => r.listing.km, text: ['Kilometreye göre, azdan çoğa', 'Kilometreye göre, çoktan aza'] },
+    score: { label: 'Puan', value: (r) => r.score, desc: true, text: ['Puana göre, düşükten yükseğe', 'Puana göre, yüksekten düşüğe'] },
+    price: { label: 'Fiyat', value: (r) => r.listing.price, text: ['Fiyata göre, düşükten yükseğe', 'Fiyata göre, yüksekten düşüğe'] },
+  };
+  let sort = { by: 'result', desc: false };
+
+  function sorted(list) {
+    const { value, words } = SORTS[sort.by];
+    const dir = sort.desc ? -1 : 1;
+    return [...list].sort((a, b) => {
+      const x = value(a);
+      const y = value(b);
+      if (x == null || y == null) return (x == null) - (y == null);
+      return dir * (words ? x.localeCompare(y, 'tr', { numeric: true }) : x - y);
+    });
+  }
+
+  function sortHeader(by, cls) {
+    const on = sort.by === by;
+    const { label } = SORTS[by];
+    const arrow = on ? (sort.desc ? '↓' : '↑') : '↕';
+    const title = on ? 'Sırayı ters çevir' : `${label} sütununa göre sırala`;
+    return `<th${cls ? ` class="${cls}"` : ''}${on ? ` aria-sort="${sort.desc ? 'descending' : 'ascending'}"` : ''}>
+      <button class="sort${on ? ' on' : ''}" data-sort="${by}" title="${title}">${label}<span class="arrow" aria-hidden="true">${arrow}</span></button></th>`;
+  }
+
   function renderEligible() {
     const head = `<thead><tr>
-      <th class="num">Sıra</th><th>İlan</th><th class="num">Yıl</th><th>Paket</th><th>Vites</th><th class="num">Kilometre</th>
-      <th>Boya</th><th class="num">Tramer</th><th class="num">Puan</th>
-      <th class="num">Fiyat</th><th>Sonuç</th><th></th>
+      <th class="num">Sıra</th><th>İlan</th>${sortHeader('year', 'num')}${sortHeader('trim')}<th>Vites</th>${sortHeader('km', 'num')}
+      <th>Boya</th><th class="num">Tramer</th>${sortHeader('score', 'num')}
+      ${sortHeader('price', 'num')}${sortHeader('result')}<th></th>
     </tr></thead>`;
+    $('sort-text').textContent = `${SORTS[sort.by].text[sort.desc ? 1 : 0]} sıralı.`;
     const drops = group.eligible.filter(dropped);
     $('drops-count').textContent = `(${drops.length})`;
-    const list = onlyDrops ? drops : group.eligible;
+    const list = sorted(onlyDrops ? drops : group.eligible);
     const { rows, count } = pageOf('eligible', list);
     const body = rows
       .map((r) => {
         const l = r.listing;
-        // The place in the full ranking, also when only price drops are shown.
+        // The place in the full ranking, also when sorted by another column or only price drops are shown.
         const rank = group.eligible.indexOf(r) + 1;
         // The order only means something once there is a price line.
         const podium = group.fit && rank <= 3;
@@ -427,6 +462,15 @@
       Object.values(renderTable).forEach((render) => render());
     });
   }
+  $('eligible').addEventListener('click', (e) => {
+    const by = e.target.closest('[data-sort]')?.dataset.sort;
+    if (!by) return;
+    sort = by === sort.by ? { by, desc: !sort.desc } : { by, desc: Boolean(SORTS[by].desc) };
+    pages.eligible = 1;
+    renderEligible();
+    // The header was redrawn: keep the keyboard on the same column (detail is 0 for a key press).
+    if (!e.detail) $('eligible').querySelector(`[data-sort="${by}"]`).focus();
+  });
   $('only-drops').onchange = (e) => {
     onlyDrops = e.target.checked;
     pages.eligible = 1;

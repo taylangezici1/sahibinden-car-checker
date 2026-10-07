@@ -163,6 +163,15 @@ td small { display: block; color: var(--ink-2); font-size: 13px; }
 .pager .size { margin-left: auto; display: flex; align-items: center; gap: 8px; color: var(--ink-2); }
 .pager select { min-height: 42px; font-weight: 600; }
 
+/* Column headers that sort "En iyi fırsatlar"; the one in use is blue with its direction. */
+th button.sort {
+  display: inline-flex; align-items: center; gap: 6px; padding: 0; border: 0; border-radius: 4px;
+  background: none; color: inherit; font-weight: 600;
+}
+th button.sort:hover, th button.sort.on { color: var(--brand); }
+th button.sort .arrow { color: var(--axis); font-size: 15px; }
+th button.sort:hover .arrow, th button.sort.on .arrow { color: var(--brand); font-weight: 700; }
+
 /* The top three deals. */
 tbody tr.podium { background: rgba(245, 179, 1, 0.1); }
 tbody tr.podium:hover { background: rgba(245, 179, 1, 0.16); }
